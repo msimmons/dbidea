@@ -1,0 +1,51 @@
+<idea-plugin version="2">
+    <id>net.contrapt</id>
+    <name>DbIdea</name>
+    <version>1.0-SNAPSHOT</version>
+    <vendor email="dummy" url="dummy">dummy</vendor>
+
+    <description><![CDATA[
+      Database query plugin.<br>
+    ]]></description>
+
+    <change-notes><![CDATA[
+      Release 0.0.1: Initial release.<br>
+    ]]>
+    </change-notes>
+
+    <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Build+Number+Ranges for description -->
+    <idea-version since-build="131"/>
+
+    <!-- please see https://confluence.jetbrains.com/display/IDEADEV/Plugin+Compatibility+with+IntelliJ+Platform+Products
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <extensions defaultExtensionNs="com.intellij">
+        <applicationConfigurable instance="net.contrapt.dbidea.model.ApplicationConfigurable"/>
+    </extensions>
+
+    <application-components>
+        <component>
+            <interface-class>net.contrapt.dbidea.controller.ApplicationController</interface-class>
+            <implementation-class>net.contrapt.dbidea.controller.ApplicationController</implementation-class>
+        </component>
+    </application-components>
+
+    <project-components>
+        <component>
+            <interface-class>net.contrapt.dbidea.controller.StatementController</interface-class>
+            <implementation-class>net.contrapt.dbidea.controller.StatementController</implementation-class>
+            <loadForDefaultProject>true</loadForDefaultProject>
+        </component>
+    </project-components>
+
+    <actions>
+        <action id="net.contrapt.dbidea.actions.QueryAction" class="net.contrapt.dbidea.actions.QueryAction"
+                text="Execute Query" description="Execute the selected sql statement">
+            <add-to-group group-id="ToolsMenu" anchor="first"/>
+        </action>
+    </actions>
+
+</idea-plugin>

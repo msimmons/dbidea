@@ -1,0 +1,43 @@
+buildscript {
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    }
+}
+
+plugins {
+    id "org.jetbrains.intellij" version "0.0.39"
+}
+
+apply plugin: 'idea'
+apply plugin: 'java'
+apply plugin: 'kotlin'
+
+intellij {
+    pluginName 'DbIdea'
+    downloadSources false
+    version 'IC-145.258.11'
+}
+
+group 'net.contrapt'
+version '1.0-SNAPSHOT'
+
+sourceCompatibility = 1.7
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile('org.apache.tomcat:tomcat-jdbc:7.0.68')
+    compile('mysql:mysql-connector-java:5.1.38')
+    compile('org.springframework:spring-jdbc:4.2.5.RELEASE')
+}
+
+task wrapper {
+    version=2.10
+}
