@@ -19,7 +19,6 @@ import net.contrapt.dbidea.model.ResultSetTableModel
 import net.contrapt.dbidea.model.UIInvoker
 import net.contrapt.dbidea.ui.ResultSetPanel
 import org.apache.tomcat.jdbc.pool.DataSource
-import org.jetbrains.debugger.createDebugLogger
 import org.springframework.jdbc.datasource.SimpleDriverDataSource
 import java.io.StringWriter
 

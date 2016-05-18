@@ -134,7 +134,7 @@ class ConnectionComponent : MasterDetailsComponent() {
 
     private fun addConnectionNode(connection : ConnectionData) {
         val configurable = ConnectionConfigurable(connection, TREE_UPDATER)
-        configurable.isModified = true
+        configurable.isNew = true
         val node = MyNode(configurable)
         addNode(node, myRoot)
         selectNodeInTree(node)

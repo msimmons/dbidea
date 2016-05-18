@@ -1,8 +1,5 @@
 package net.contrapt.dbidea.controller
 
-import com.intellij.openapi.components.State
-import com.intellij.openapi.components.Storage
-
 /**
  * Created by mark on 4/21/16.
  */

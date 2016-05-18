@@ -16,15 +16,14 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
     val logger : Logger = Logger.getInstance(javaClass)
 
     val applicationController : ApplicationController
-    val connectionPanel: ConnectionDataPanel
     var original: ConnectionData
-    var _modified : Boolean = false
+    var isNew : Boolean = false
+    lateinit var connectionPanel : ConnectionDataPanel
 
     init {
         logger.warn("Creating connection config")
         applicationController = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
         original = connection.copy()
-        connectionPanel = ConnectionDataPanel(connection)
     }
 
     override fun getBannerSlogan(): String? {
@@ -32,11 +31,12 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
     }
 
     override fun getEditableObject(): ConnectionData? {
-        logger.warn("Getting editable object $connection")
+        logger.debug("Getting editable object $connection")
         return connection
     }
 
     override fun createOptionsPanel(): JComponent? {
+        connectionPanel = ConnectionDataPanel(connection, isNew)
         return connectionPanel
     }
 
@@ -49,11 +49,6 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
         return original != connection
     }
 
-    fun setModified(value: Boolean) {
-        logger.warn("setModified=$value")
-        _modified = value
-    }
-
     override fun disposeUIResources() {
         //throw UnsupportedOperationException()
     }
@@ -62,6 +57,8 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
         logger.warn("Applying $connection")
         applicationController.applicationData.updateConnection(connection)
         original = connection.copy()
+        isNew = false
+        connectionPanel.apply()
         //throw UnsupportedOperationException()
     }
 
