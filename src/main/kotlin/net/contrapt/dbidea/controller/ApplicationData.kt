@@ -20,4 +20,14 @@ data class ApplicationData(var name : String ="DbIdea") {
         }
         connections.add(connectionData)
     }
+
+    fun updateDriver(driverData: DriverData) {
+        val found = drivers.indexOfFirst {
+            it.name == driverData.name
+        }
+        if ( found >= 0 ) {
+            drivers.removeAt(found)
+        }
+        drivers.add(driverData)
+    }
 }

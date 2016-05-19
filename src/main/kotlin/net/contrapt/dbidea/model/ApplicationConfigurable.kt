@@ -7,9 +7,6 @@ import com.intellij.openapi.options.SearchableConfigurable
 import net.contrapt.dbidea.controller.ApplicationController
 import net.contrapt.dbidea.ui.ConnectionComponent
 import net.contrapt.dbidea.ui.DriverComponent
-import javax.swing.JComponent
-import javax.swing.JPanel
-import javax.swing.JTextField
 
 /**
  * Parent configurable component for the application data
@@ -17,7 +14,7 @@ import javax.swing.JTextField
 class ApplicationConfigurable : SearchableConfigurable.Parent.Abstract() {
 
     override fun buildConfigurables(): Array<out Configurable>? {
-        return arrayOf(ConnectionComponent(), DriverComponent())
+        return arrayOf(DriverComponent(), ConnectionComponent())
     }
 
     override fun getId(): String {
@@ -41,37 +38,4 @@ class ApplicationConfigurable : SearchableConfigurable.Parent.Abstract() {
         applicationController = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
     }
 
-    /*
-    override fun isModified(): Boolean {
-        return false;
-        //throw UnsupportedOperationException()
-    }
-
-    override fun disposeUIResources() {
-        //throw UnsupportedOperationException()
-    }
-
-    override fun apply() {
-        //throw UnsupportedOperationException()
-    }
-
-    override fun createComponent(): JComponent? {
-        return JPanel()
-        //throw UnsupportedOperationException()
-    }
-
-    override fun reset() {
-        //throw UnsupportedOperationException()
-    }
-
-    override fun getDisplayName(): String? {
-        return "DbIdea"
-        //throw UnsupportedOperationException()
-    }
-
-    override fun getHelpTopic(): String? {
-        return null
-        //throw UnsupportedOperationException()
-    }
-    */
 }

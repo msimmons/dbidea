@@ -7,8 +7,6 @@ import net.contrapt.dbidea.controller.ApplicationController
 import net.contrapt.dbidea.controller.DriverData
 import net.contrapt.dbidea.ui.DriverDataPanel
 import javax.swing.JComponent
-import javax.swing.JPanel
-import javax.swing.JTextField
 
 /**
  * Configurable component for driver data
@@ -18,13 +16,14 @@ class DriverConfigurable(val driver: DriverData, val updater: Runnable) : NamedC
     val logger : Logger = Logger.getInstance(javaClass)
 
     val applicationController : ApplicationController
-    val driverPanel: DriverDataPanel
-    var _modified : Boolean = false
+    lateinit var driverPanel: DriverDataPanel
+    var original : DriverData
+    var isNew : Boolean = false
 
     init {
         logger.warn("Creating driver config")
         applicationController = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
-        driverPanel = DriverDataPanel()
+        original = driver.copy()
     }
 
     override fun getBannerSlogan(): String? {
@@ -32,11 +31,12 @@ class DriverConfigurable(val driver: DriverData, val updater: Runnable) : NamedC
     }
 
     override fun getEditableObject(): DriverData? {
-        logger.warn("Getting editable object")
+        logger.debug("Getting editable object")
         return driver
     }
 
     override fun createOptionsPanel(): JComponent? {
+        driverPanel = DriverDataPanel(driver, isNew)
         return driverPanel
     }
 
@@ -45,11 +45,7 @@ class DriverConfigurable(val driver: DriverData, val updater: Runnable) : NamedC
     }
 
     override fun isModified(): Boolean {
-        return _modified;
-    }
-
-    fun setModified(value: Boolean) {
-        _modified = value
+        return original != driver
     }
 
     override fun disposeUIResources() {
@@ -57,7 +53,11 @@ class DriverConfigurable(val driver: DriverData, val updater: Runnable) : NamedC
     }
 
     override fun apply() {
-        //throw UnsupportedOperationException()
+        logger.debug("Applying $driver")
+        applicationController.applicationData.updateDriver(driver)
+        original = driver.copy()
+        isNew = false
+        driverPanel.apply()
     }
 
     override fun reset() {

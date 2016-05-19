@@ -4,15 +4,13 @@ import net.contrapt.dbidea.controller.ConnectionData
 import org.apache.batik.ext.swing.GridBagConstants
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import javax.swing.*
-import javax.swing.event.DocumentEvent
-import javax.swing.event.DocumentListener
-import javax.swing.text.*
+import javax.swing.JComboBox
+import javax.swing.JTextField
 
 /**
  * UI for editing connection configuration
  */
-class ConnectionDataPanel(val connection: ConnectionData, var isNew : Boolean) : JPanel() {
+class ConnectionDataPanel(val connection: ConnectionData, isNew : Boolean) : BaseDataPanel<ConnectionData>(isNew) {
 
     private val nameField : JTextField
     private val driverField : JTextField
@@ -48,49 +46,10 @@ class ConnectionDataPanel(val connection: ConnectionData, var isNew : Boolean) :
         add(userField, setConstraints(gbc, 1, 3, GridBagConstraints.LINE_START))
         add(createLabel("Password:"), setConstraints(gbc, 0, 4, GridBagConstraints.LINE_END))
         add(passwordField, setConstraints(gbc, 1, 4, GridBagConstraints.LINE_START))
-        JLabel().horizontalAlignment=SwingConstants.RIGHT
     }
 
     fun apply() {
         nameField.isEditable = false
     }
 
-    private fun setConstraints(gbc : GridBagConstraints, x : Int, y : Int, anchor : Int) : GridBagConstraints {
-        gbc.gridx = x
-        gbc.gridy = y
-        gbc.anchor = anchor
-        return gbc
-    }
-
-    private fun createLabel(text : String) : JLabel {
-        val label = JLabel(text)
-        label.horizontalAlignment = SwingConstants.RIGHT
-        return label
-    }
-
-    private fun createTextField(connection: ConnectionData, getter : (ConnectionData)->String, setter : (ConnectionData, String)->Unit) : JTextField {
-        val field = JTextField()
-        field.columns = 40
-        field.document = createDocument(connection, getter, setter)
-        return field
-    }
-
-    private fun createDocument(connection: ConnectionData, getter : (ConnectionData)->String, setter : (ConnectionData, String)->Unit) : Document {
-        val document = PlainDocument()
-        document.insertString(0, getter(connection), null)
-        document.addDocumentListener(object : DocumentListener {
-            override fun changedUpdate(e: DocumentEvent?) {
-                if ( e != null ) setter(connection, document.getText(0, document.length))
-            }
-
-            override fun insertUpdate(e: DocumentEvent?) {
-                if ( e != null ) setter(connection, document.getText(0, document.length))
-            }
-
-            override fun removeUpdate(e: DocumentEvent?) {
-                if ( e != null ) setter(connection, document.getText(0, document.length))
-            }
-        })
-        return document
-    }
 }
