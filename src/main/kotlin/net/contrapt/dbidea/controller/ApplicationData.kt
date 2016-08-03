@@ -21,6 +21,10 @@ data class ApplicationData(var name : String ="DbIdea") {
         connections.add(connectionData)
     }
 
+    fun listDrivers() : List<DriverData> {
+        return drivers
+    }
+
     fun updateDriver(driverData: DriverData) {
         val found = drivers.indexOfFirst {
             it.name == driverData.name
@@ -29,5 +33,26 @@ data class ApplicationData(var name : String ="DbIdea") {
             drivers.removeAt(found)
         }
         drivers.add(driverData)
+    }
+
+    fun removeConnection(connection: ConnectionData) {
+        val found = connections.indexOfFirst { it.name == connection.name }
+        if ( found >= 0 ) {
+            connections.removeAt(found)
+        }
+    }
+
+    fun removeDriver(driver: DriverData) {
+        if (connections.any { it.driver == driver.name }) {
+            throw IllegalStateException("Cannot remove driver that is still referenced")
+        }
+        val found = drivers.indexOfFirst { it.name == driver.name }
+        if ( found >= 0 ) {
+            drivers.removeAt(found)
+        }
+    }
+
+    fun driverExists(driver: DriverData): Boolean {
+        return drivers.any{ it.name==driver.name}
     }
 }

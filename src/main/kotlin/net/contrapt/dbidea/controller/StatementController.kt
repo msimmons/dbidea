@@ -8,6 +8,7 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
+import com.intellij.openapi.util.Key
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
@@ -73,6 +74,10 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
     fun executeSql(sql: String) {
         var model = ResultSetTableModel(pool.connection, sql, UIInvoker(ApplicationManager.getApplication()))
         addOrReplaceContent(model)
+    }
+
+    fun chooseConnection(dataContext: DataContext) {
+        val connectionName = DataKeys.VIRTUAL_FILE.getData(dataContext)?.getUserData(Key.create<String>("dbidea.connection"))
     }
 
     private fun addOrReplaceContent(model: ResultSetTableModel) {

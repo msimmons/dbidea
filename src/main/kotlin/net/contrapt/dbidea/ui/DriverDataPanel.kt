@@ -25,15 +25,13 @@ class DriverDataPanel(driver : DriverData, isNew : Boolean) : BaseDataPanel<Driv
 
         layout = GridBagLayout()
         val gbc = GridBagConstraints()
-        gbc.fill = GridBagConstants.HORIZONTAL
-        gbc.ipadx = 4
-        gbc.ipady = 4
-        add(createLabel("Name:"), setConstraints(gbc, 0, 0, GridBagConstraints.LINE_END))
-        add(nameField, setConstraints(gbc, 1, 0, GridBagConstraints.LINE_START))
-        add(createLabel("Driver Class Name:"), setConstraints(gbc, 0, 1, GridBagConstraints.LINE_END))
-        add(classNameField, setConstraints(gbc, 1, 1, GridBagConstraints.LINE_START))
-        add(createLabel("JAR File:"), setConstraints(gbc, 0, 2, GridBagConstraints.LINE_END))
-        add(jarFileField, setConstraints(gbc, 1, 2, GridBagConstraints.LINE_START))
+
+        add(createLabel("Name:"), setConstraints(gbc, 0, 0, GridBagConstraints.LINE_END, .25))
+        add(nameField, setConstraints(gbc, 1, 0, GridBagConstraints.LINE_START, 1.0))
+        add(createLabel("Driver Class Name:"), setConstraints(gbc, 0, 1, GridBagConstraints.LINE_END, .25))
+        add(classNameField, setConstraints(gbc, 1, 1, GridBagConstraints.LINE_START, 1.0))
+        add(createLabel("JAR File:"), setConstraints(gbc, 0, 2, GridBagConstraints.LINE_END, .25))
+        add(jarFileField, setConstraints(gbc, 1, 2, GridBagConstraints.LINE_START, 1.0))
     }
 
     fun apply() {

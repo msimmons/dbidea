@@ -23,7 +23,7 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
     init {
         logger.warn("Creating connection config")
         applicationController = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
-        original = connection.copy()
+        original = connection.deepCopy()
     }
 
     override fun getBannerSlogan(): String? {
@@ -36,7 +36,7 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
     }
 
     override fun createOptionsPanel(): JComponent? {
-        connectionPanel = ConnectionDataPanel(connection, isNew)
+        connectionPanel = ConnectionDataPanel(connection, applicationController.applicationData, isNew)
         return connectionPanel
     }
 
@@ -46,6 +46,7 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
 
     override fun isModified(): Boolean {
         logger.warn("isModified")
+        logger.warn("${original.schemas} ?= ${connection.schemas}")
         return original != connection
     }
 
@@ -56,7 +57,7 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
     override fun apply() {
         logger.warn("Applying $connection")
         applicationController.applicationData.updateConnection(connection)
-        original = connection.copy()
+        original = connection.deepCopy()
         isNew = false
         connectionPanel.apply()
         //throw UnsupportedOperationException()

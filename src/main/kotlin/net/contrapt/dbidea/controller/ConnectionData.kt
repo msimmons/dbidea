@@ -13,4 +13,11 @@ data class ConnectionData(
         var fetchLimit : Int = 500,
         var schemas : MutableList<String> = mutableListOf()
 ) {
+
+    fun deepCopy() : ConnectionData {
+        val copy = this.copy()
+        copy.schemas = mutableListOf()
+        copy.schemas.addAll(schemas)
+        return copy
+    }
 }

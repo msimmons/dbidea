@@ -1,10 +1,9 @@
 package net.contrapt.dbidea.ui
 
+import org.apache.batik.ext.swing.GridBagConstants
 import java.awt.GridBagConstraints
-import javax.swing.JLabel
-import javax.swing.JPanel
-import javax.swing.JTextField
-import javax.swing.SwingConstants
+import java.awt.event.ActionEvent
+import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 import javax.swing.text.Document
@@ -15,10 +14,15 @@ import javax.swing.text.PlainDocument
  */
 abstract class BaseDataPanel<T>(var isNew : Boolean) : JPanel() {
 
-    protected fun setConstraints(gbc : GridBagConstraints, x : Int, y : Int, anchor : Int) : GridBagConstraints {
+    protected fun setConstraints(gbc : GridBagConstraints, x : Int, y : Int, anchor : Int, weight : Double) : GridBagConstraints {
         gbc.gridx = x
         gbc.gridy = y
         gbc.anchor = anchor
+        gbc.fill = GridBagConstants.HORIZONTAL
+        gbc.ipadx = 4
+        gbc.ipady = 4
+        gbc.weightx = weight
+        gbc.weighty = 0.0
         return gbc
     }
 
@@ -32,6 +36,13 @@ abstract class BaseDataPanel<T>(var isNew : Boolean) : JPanel() {
         val field = JTextField()
         field.columns = 40
         field.document = createDocument(target, getter, setter)
+        return field
+    }
+
+    protected fun createIntField(target: T, getter : (T)->Int, setter : (T, Int)->Unit) : JTextField {
+        val field = JTextField()
+        field.columns = 40
+        field.document = createIntDocument(target, getter, setter)
         return field
     }
 
@@ -53,4 +64,76 @@ abstract class BaseDataPanel<T>(var isNew : Boolean) : JPanel() {
         })
         return document
     }
+
+    protected fun createIntDocument(target: T, getter : (T)->Int, setter : (T, Int)->Unit) : Document {
+        val document = PlainDocument()
+        document.insertString(0, getter(target).toString(), null)
+        document.addDocumentListener(object : DocumentListener {
+            override fun changedUpdate(e: DocumentEvent?) {
+                if ( e != null ) setter(target, document.getText(0, document.length).toInt())
+            }
+
+            override fun insertUpdate(e: DocumentEvent?) {
+                if ( e != null ) setter(target, document.getText(0, document.length).toInt())
+            }
+
+            override fun removeUpdate(e: DocumentEvent?) {
+                if ( e != null ) setter(target, document.getText(0, document.length).toInt())
+            }
+        })
+        return document
+    }
+
+    protected fun createListDocument(data: MutableList<String>) : Document {
+        val document = PlainDocument()
+        document.insertString(0, data.joinToString(","), null)
+        document.addDocumentListener(object : DocumentListener {
+            override fun changedUpdate(e: DocumentEvent?) {
+                if ( e != null ) {
+                    data.clear()
+                    document.getText(0, document.length).split(",").forEach {
+                        data.add(it.trim())
+                    }
+                }
+            }
+
+            override fun insertUpdate(e: DocumentEvent?) {
+                if ( e != null ) {
+                    data.clear()
+                    document.getText(0, document.length).split(",").forEach {
+                        data.add(it.trim())
+                    }
+                }
+            }
+
+            override fun removeUpdate(e: DocumentEvent?) {
+                if ( e != null ) {
+                    data.clear()
+                    document.getText(0, document.length).split(",").forEach {
+                        data.add(it.trim())
+                    }
+                }
+            }
+        })
+        return document
+    }
+
+    protected fun createCheckBox(target: T, getter: (T) -> Boolean, setter : (T, Boolean)->Unit) : JCheckBox {
+        val action = object : AbstractAction() {
+            override fun actionPerformed(e: ActionEvent?) {
+                setter(target, !getter(target))
+            }
+        }
+        val box = JCheckBox(action)
+        box.isSelected = getter(target)
+        return box
+    }
+
+    protected fun createListField(data: MutableList<String>) : JTextField {
+        val field = JTextField()
+        field.columns = 60
+        field.document = createListDocument(data)
+        return field
+    }
+
 }

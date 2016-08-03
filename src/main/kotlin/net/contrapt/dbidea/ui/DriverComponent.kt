@@ -12,6 +12,7 @@ import com.intellij.util.PlatformIcons
 import net.contrapt.dbidea.controller.ApplicationController
 import net.contrapt.dbidea.controller.DriverData
 import net.contrapt.dbidea.model.DriverConfigurable
+import org.apache.commons.logging.LogFactory
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.util.*
@@ -24,9 +25,13 @@ import javax.swing.tree.TreePath
  */
 class DriverComponent : MasterDetailsComponent() {
 
+    val logger = LogFactory.getLog(javaClass)
+
     var myInitialized = false
     //val myUpdate : Runnable = {} as Runnable
     val applicationController : ApplicationController
+
+    val removedItems : MutableList<DriverConfigurable> = mutableListOf()
 
     init {
         applicationController = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
@@ -38,11 +43,16 @@ class DriverComponent : MasterDetailsComponent() {
     }
 
     override fun wasObjectStored(p0: Any?): Boolean {
-        throw UnsupportedOperationException()
+        val driver = p0 as DriverData
+        logger.warn("Was object $p0 stored?")
+        return applicationController.applicationData.driverExists(driver)
     }
 
     override fun processRemovedItems() {
-        throw UnsupportedOperationException()
+        removedItems.forEach {
+            applicationController.applicationData.removeDriver(it.driver)
+        }
+        removedItems.clear()
     }
 
     override fun getDisplayName(): String? {
@@ -62,12 +72,16 @@ class DriverComponent : MasterDetailsComponent() {
     }
 
     override fun createActions(fromPopup: Boolean): ArrayList<AnAction> {
-        return ArrayList<AnAction>(listOf(AddAction(this), DeleteAction(this), CopyAction(this)))
+        return ArrayList<AnAction>(listOf(createAddAction(), createDeleteAction(), createCopyAction()))
     }
 
     override fun removePaths(vararg paths : TreePath) {
+        logger.warn("Removing paths with $paths")
         super.removePaths(*paths);
-        reloadAvailableDrivers();
+        paths.forEach {
+            val node = it.lastPathComponent as MyNode
+            removedItems.add(node.configurable as DriverConfigurable)
+        }
     }
 
     override fun reset() {
@@ -77,10 +91,6 @@ class DriverComponent : MasterDetailsComponent() {
 
     override fun getEmptySelectionString() : String {
         return "Select a driver to view or edit its details here"
-    }
-
-    protected fun reloadAvailableDrivers() {
-        //myUpdate.run()
     }
 
     public fun getAllDrivers() : Map<String, Any> {
@@ -123,67 +133,71 @@ class DriverComponent : MasterDetailsComponent() {
     }
 
     private fun addDriverNode(driver: DriverData) {
-        val configurable = DriverConfigurable(driver, TREE_UPDATER)
-        configurable.isModified = true
+        val  configurable = DriverConfigurable(driver, TREE_UPDATER)
+        configurable.isNew = true
         val node = MyNode(configurable)
         addNode(node, myRoot)
         selectNodeInTree(node)
-        reloadAvailableDrivers()
     }
 
-    class AddAction(val panel: DriverComponent) : DumbAwareAction("Add", "Add", IconUtil.getAddIcon()) {
-        init {
-            registerCustomShortcutSet(CommonShortcuts.INSERT, panel.myTree);
-        }
-        override fun actionPerformed(event: AnActionEvent) {
-            val name = "" //askForProfileName("Create Copyright Profile", "")
-            //final CopyrightProfile copyrightProfile = new CopyrightProfile(name);
-            //panel.addProfileNode(copyrightProfile);
-        }
-    }
+    fun createAddAction() : DumbAwareAction {
+        return object : DumbAwareAction("Add", "Add", IconUtil.getAddIcon()) {
+            var nameCounter = 0
+            init {
+                registerCustomShortcutSet(CommonShortcuts.INSERT, this@DriverComponent.myTree);
+            }
+            override fun actionPerformed(p0: AnActionEvent?) {
+                nameCounter++
+                val driver = DriverData("Driver-$nameCounter")
+                this@DriverComponent.addDriverNode(driver);
+            }
 
-    class CopyAction(val panel: DriverComponent) : DumbAwareAction("Copy", "Copy", PlatformIcons.COPY_ICON) {
-        init {
-            registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_MASK)), panel.myTree)
-        }
-
-        override fun actionPerformed(event: AnActionEvent) {
-            //final String profileName = askForProfileName("Copy Copyright Profile", "");
-            //if (profileName == null) return;
-            //final CopyrightProfile clone = new CopyrightProfile();
-            //clone.copyFrom((CopyrightProfile)getSelectedObject());
-            //clone.setName(profileName);
-            //addProfileNode(clone);
-        }
-
-        override fun update(event: AnActionEvent) {
-            super.update(event);
-            event.getPresentation().setEnabled(panel.getSelectedObject() != null);
         }
     }
 
-    protected class DeleteAction(val panel: DriverComponent) : DumbAwareAction("Delete", "Delete", PlatformIcons.DELETE_ICON) {
-        init {
-            registerCustomShortcutSet(CommonShortcuts.getDelete(), panel.myTree)
-        }
+    fun createCopyAction() : DumbAwareAction {
+        return object : DumbAwareAction("Copy", "Copy", PlatformIcons.COPY_ICON) {
+            init {
+                registerCustomShortcutSet(CustomShortcutSet(KeyStroke.getKeyStroke(KeyEvent.VK_D, InputEvent.CTRL_MASK)), this@DriverComponent.myTree)
+            }
 
-        override fun actionPerformed(p0: AnActionEvent?) {
-            panel.removePaths(*panel.myTree.selectionPaths)
-        }
+            override fun actionPerformed(event: AnActionEvent) {
+                val selected = this@DriverComponent.selectedConfigurable?.editableObject as DriverData
+                val driver = selected.copy("Copy of ${selected.name}")
+                this@DriverComponent.addDriverNode(driver);
+            }
 
-        override fun update(e : AnActionEvent) {
-            val presentation = e.getPresentation();
-            presentation.setEnabled(false);
-            val selectionPaths = panel.myTree.selectionPaths
-            if (selectionPaths != null) {
-                //Object[] nodes = ContainerUtil.map2Array(selectionPath, new Function<TreePath, Object>() {
-//                    @Override
-  //                  public Object fun(TreePath treePath) {
-    //                    return treePath.getLastPathComponent();
-      //              }
-        //        });
-          //      if (!myCondition.value(nodes)) return;
-                presentation.setEnabled(true);
+            override fun update(event: AnActionEvent) {
+                super.update(event);
+                event.getPresentation().setEnabled(this@DriverComponent.getSelectedObject() != null);
+            }
+        }
+    }
+
+    fun createDeleteAction() : DumbAwareAction {
+        return object : DumbAwareAction("Delete", "Delete", PlatformIcons.DELETE_ICON) {
+            init {
+                registerCustomShortcutSet(CommonShortcuts.getDelete(), this@DriverComponent.myTree)
+            }
+
+            override fun actionPerformed(p0: AnActionEvent?) {
+                this@DriverComponent.removePaths(*this@DriverComponent.myTree.selectionPaths)
+            }
+
+            override fun update(e: AnActionEvent) {
+                val presentation = e.getPresentation();
+                presentation.setEnabled(false);
+                val selectionPaths = this@DriverComponent.myTree.selectionPaths
+                if (selectionPaths != null) {
+                    //Object[] nodes = ContainerUtil.map2Array(selectionPath, new Function<TreePath, Object>() {
+                    //                    @Override
+                    //                  public Object fun(TreePath treePath) {
+                    //                    return treePath.getLastPathComponent();
+                    //              }
+                    //        });
+                    //      if (!myCondition.value(nodes)) return;
+                    presentation.setEnabled(true);
+                }
             }
         }
     }

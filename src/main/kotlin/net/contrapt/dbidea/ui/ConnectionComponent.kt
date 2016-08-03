@@ -31,6 +31,8 @@ class ConnectionComponent : MasterDetailsComponent() {
     //val myUpdate : Runnable = {} as Runnable
     val applicationController : ApplicationController
 
+    val removedItems : MutableList<ConnectionConfigurable> = mutableListOf()
+
     init {
         applicationController = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
         initTree()
@@ -46,7 +48,10 @@ class ConnectionComponent : MasterDetailsComponent() {
     }
 
     override fun processRemovedItems() {
-        logger.warn("Process removed items")
+        removedItems.forEach {
+            applicationController.applicationData.removeConnection(it.connection)
+        }
+        removedItems.clear()
     }
 
     override fun getDisplayName(): String? {
@@ -73,7 +78,10 @@ class ConnectionComponent : MasterDetailsComponent() {
     override fun removePaths(vararg paths : TreePath) {
         logger.warn("removePaths with $paths")
         super.removePaths(*paths);
-        reloadAvailableConnections();
+        paths.forEach {
+            val node = it.lastPathComponent as MyNode
+            removedItems.add(node.configurable as ConnectionConfigurable)
+        }
     }
 
     override fun reset() {
@@ -84,11 +92,6 @@ class ConnectionComponent : MasterDetailsComponent() {
 
     override fun getEmptySelectionString() : String {
         return "Select a connection to view or edit its details here"
-    }
-
-    protected fun reloadAvailableConnections() {
-        logger.warn("reloadAvailableConnections")
-        //myUpdate.run()
     }
 
     public fun getAllConnections() : Map<String, ConnectionData> {
@@ -126,7 +129,7 @@ class ConnectionComponent : MasterDetailsComponent() {
         myRoot.removeAllChildren();
         logger.warn("Reloading tree with ${applicationController.applicationData.connections}")
         applicationController.applicationData.connections.forEach {
-            val copy = it.copy()
+            val copy = it.deepCopy()
             addNode(MyNode(ConnectionConfigurable(copy, TREE_UPDATER)), myRoot)
         }
         myInitialized = true
@@ -138,7 +141,6 @@ class ConnectionComponent : MasterDetailsComponent() {
         val node = MyNode(configurable)
         addNode(node, myRoot)
         selectNodeInTree(node)
-        reloadAvailableConnections()
     }
 
     fun createAddAction() : DumbAwareAction {
