@@ -8,19 +8,15 @@ import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.SimpleToolWindowPanel
-import com.intellij.openapi.util.Key
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentManagerEvent
 import com.intellij.ui.content.ContentManagerListener
-import com.mysql.jdbc.Driver
 import net.contrapt.dbidea.model.ResultSetTableModel
 import net.contrapt.dbidea.model.UIInvoker
 import net.contrapt.dbidea.ui.ResultSetPanel
-import org.apache.tomcat.jdbc.pool.DataSource
-import org.springframework.jdbc.datasource.SimpleDriverDataSource
 import java.io.StringWriter
 
 /**
@@ -33,22 +29,11 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
 
     lateinit var toolWindow: ToolWindow
     lateinit var applicationController : ApplicationController
+    lateinit var connectionName : String
     var panelCount = 0
-    var pool: DataSource
     val modelMap : MutableMap<Content, ResultSetTableModel> = mutableMapOf()
 
     init {
-        val mysql = Driver()
-        val url = "jdbc:mysql://localhost/etl_dev?relaxAutoCommit=true"
-        val username = "app"
-        val password = "qwerty"
-        val dataSource = SimpleDriverDataSource(mysql, url, username, password)
-        pool = DataSource()
-        pool.dataSource = dataSource
-        pool.initialSize = 2
-        pool.isTestOnBorrow = true
-        pool.validationQuery = "select user() from dual"
-        pool.defaultAutoCommit = false
     }
 
     override fun getComponentName(): String = "StatementController"
@@ -72,12 +57,9 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
     }
 
     fun executeSql(sql: String) {
-        var model = ResultSetTableModel(pool.connection, sql, UIInvoker(ApplicationManager.getApplication()))
+        val pool = applicationController.getPool(connectionName)
+        var model = ResultSetTableModel(connectionName, pool.connection, sql, UIInvoker(ApplicationManager.getApplication()))
         addOrReplaceContent(model)
-    }
-
-    fun chooseConnection(dataContext: DataContext) {
-        val connectionName = DataKeys.VIRTUAL_FILE.getData(dataContext)?.getUserData(Key.create<String>("dbidea.connection"))
     }
 
     private fun addOrReplaceContent(model: ResultSetTableModel) {

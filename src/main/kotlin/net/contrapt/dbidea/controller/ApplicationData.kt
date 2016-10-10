@@ -5,7 +5,7 @@ package net.contrapt.dbidea.controller
  */
 data class ApplicationData(var name : String ="DbIdea") {
 
-    public constructor() : this("DbIdea")
+    constructor() : this("DbIdea")
 
     var drivers : MutableList<DriverData> = mutableListOf()
 
@@ -19,10 +19,6 @@ data class ApplicationData(var name : String ="DbIdea") {
             connections.removeAt(found)
         }
         connections.add(connectionData)
-    }
-
-    fun listDrivers() : List<DriverData> {
-        return drivers
     }
 
     fun updateDriver(driverData: DriverData) {

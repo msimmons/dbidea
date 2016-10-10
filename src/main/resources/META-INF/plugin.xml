@@ -46,6 +46,9 @@
                 text="Execute Query" description="Execute the selected sql statement">
             <add-to-group group-id="ToolsMenu" anchor="first"/>
         </action>
+        <action id="net.contrapt.dbidea.actions.ChooseConnectionAction" class="net.contrapt.dbidea.actions.ChooseConnectionAction"
+            text="Choose DB Connection" description="Choose the connection to execute SQL against">
+        </action>
     </actions>
 
 </idea-plugin>

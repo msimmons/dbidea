@@ -1,7 +1,6 @@
 package net.contrapt.dbidea.model
 
 import java.io.BufferedWriter
-import java.io.IOException
 import java.sql.*
 import java.text.SimpleDateFormat
 import javax.swing.JTable
@@ -13,7 +12,7 @@ import kotlin.system.measureTimeMillis
 /**
  * Table model for the given sql statement and connection
  */
-class ResultSetTableModel(val connection: Connection, val sql: String, val invoker: UIInvoker) : AbstractTableModel() {
+class ResultSetTableModel(val connectionName : String, val connection: Connection, val sql: String, val invoker: UIInvoker) : AbstractTableModel() {
 
     private val statement: PreparedStatement = connection.prepareStatement(sql)
 
@@ -69,7 +68,7 @@ class ResultSetTableModel(val connection: Connection, val sql: String, val invok
      * Return connection info as string
      */
     fun getConnectionInfo() :String {
-        return connection.clientInfo.values.toString()
+        return connectionName
     }
 
     /**
