@@ -292,11 +292,12 @@ class ResultSetTableModel(val connectionData: ConnectionData, val connection: Co
                 val headerLength = meta.getColumnLabel(it).length
                 val valueLength = 3 * meta.getColumnDisplaySize(it)
                 val maxLength = Math.max(valueLength, headerLength)
-                val column = columnModel.getColumn(it - 1)
-                column.headerValue = meta.getColumnLabel(it)
-                column.minWidth = 0
-                column.maxWidth = maxLength * charWidth * 2
-                column.preferredWidth = headerLength * charWidth
+                val tableColumn = columnModel.getColumn(it - 1)
+                tableColumn.headerValue = meta.getColumnLabel(it)
+                tableColumn.minWidth = 0
+                val maxWidth = maxLength * charWidth * 2
+                tableColumn.maxWidth = if ( maxWidth > 0 ) maxWidth else maxLength
+                tableColumn.preferredWidth = headerLength * charWidth
             }
             table.autoCreateColumnsFromModel = false
             fireTableStructureChanged()

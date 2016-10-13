@@ -51,7 +51,6 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
     }
 
     override fun disposeUIResources() {
-        //throw UnsupportedOperationException()
     }
 
     override fun apply() {
@@ -60,13 +59,10 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
         original = connection.deepCopy()
         isNew = false
         connectionPanel.apply()
-        //throw UnsupportedOperationException()
     }
 
     override fun reset() {
         logger.warn("Resetting to $original -- why?")
-        //editable = connection.copy()
-        //throw UnsupportedOperationException()
     }
 
     override fun getDisplayName(): String? {
@@ -75,6 +71,5 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
 
     override fun getHelpTopic(): String? {
         return null
-        //throw UnsupportedOperationException()
     }
 }
