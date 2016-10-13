@@ -160,7 +160,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
         }
     }
 
-    class CommitStatement(val model: ResultSetTableModel) : AnAction("Commit", "Commit this statement", AllIcons.Process.State.GreenOK) {
+    class CommitStatement(val model: ResultSetTableModel) : DumbAwareAction("Commit", "Commit this statement", AllIcons.Process.State.GreenOK) {
 
         override fun actionPerformed(e : AnActionEvent) {
             model.updateStatus("Committing")
@@ -175,10 +175,9 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
         }
 
         override fun update(e: AnActionEvent?) {
-            templatePresentation.isEnabled = model.inTransaction()
+            super.update(e)
+            e?.presentation?.isEnabled = model.inTransaction()
         }
-
-
     }
 
     class RollbackStatement(val model: ResultSetTableModel) : DumbAwareAction("Rollback", "Rollback this statement", AllIcons.Actions.Rollback) {
@@ -192,6 +191,11 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                 throw(e)
             }
             model.updateStatus("Rolled Back")
+        }
+
+        override fun update(e: AnActionEvent?) {
+            super.update(e)
+            e?.presentation?.isEnabled = model.inTransaction()
         }
     }
 

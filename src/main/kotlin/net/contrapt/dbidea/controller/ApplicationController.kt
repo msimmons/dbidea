@@ -125,7 +125,7 @@ class ApplicationController : ApplicationComponent, PersistentStateComponent<App
      * Create a new connection pool
      */
     private fun createPool(connectionData: ConnectionData) : DataSource {
-        val driverData = getDriver(connectionData.name)
+        val driverData = getDriver(connectionData.driver)
         val driver = Class.forName(driverData.className).newInstance() as Driver
         val pool = DataSource()
         pool.dataSource = SimpleDriverDataSource(driver, connectionData.url, connectionData.user, connectionData.password)
