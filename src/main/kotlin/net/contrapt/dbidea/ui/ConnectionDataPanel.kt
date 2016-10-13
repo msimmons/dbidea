@@ -2,11 +2,12 @@ package net.contrapt.dbidea.ui
 
 import net.contrapt.dbidea.controller.ApplicationData
 import net.contrapt.dbidea.controller.ConnectionData
-import net.contrapt.dbidea.controller.DriverData
-import org.apache.batik.ext.swing.GridBagConstants
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import javax.swing.*
+import javax.swing.ComboBoxModel
+import javax.swing.JCheckBox
+import javax.swing.JComboBox
+import javax.swing.JTextField
 import javax.swing.event.ListDataListener
 
 /**
@@ -65,7 +66,7 @@ class ConnectionDataPanel(val connection: ConnectionData, val applicationData : 
             val appData = applicationData
             var selected = connection.driver
             override fun getElementAt(index: Int): String? {
-                return appData.drivers[index]?.name
+                return appData.drivers[index].name
             }
 
             override fun getSize(): Int {

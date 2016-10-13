@@ -4,6 +4,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.options.Configurable
 import com.intellij.openapi.options.SearchableConfigurable
+import net.contrapt.dbidea.DBIdea
 import net.contrapt.dbidea.controller.ApplicationController
 import net.contrapt.dbidea.ui.ConnectionComponent
 import net.contrapt.dbidea.ui.DriverComponent
@@ -18,11 +19,11 @@ class ApplicationConfigurable : SearchableConfigurable.Parent.Abstract() {
     }
 
     override fun getId(): String {
-        return "DbIdea"
+        return DBIdea.APP_ID
     }
 
     override fun getDisplayName(): String? {
-        return "DbIdea"
+        return DBIdea.APP_NAME
     }
 
     override fun getHelpTopic(): String? {

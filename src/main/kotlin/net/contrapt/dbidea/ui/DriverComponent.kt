@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.MasterDetailsComponent
 import com.intellij.util.IconUtil
@@ -12,7 +13,6 @@ import com.intellij.util.PlatformIcons
 import net.contrapt.dbidea.controller.ApplicationController
 import net.contrapt.dbidea.controller.DriverData
 import net.contrapt.dbidea.model.DriverConfigurable
-import org.apache.commons.logging.LogFactory
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.util.*
@@ -25,7 +25,7 @@ import javax.swing.tree.TreePath
  */
 class DriverComponent : MasterDetailsComponent() {
 
-    val logger = LogFactory.getLog(javaClass)
+    val logger = Logger.getInstance(javaClass)
 
     var myInitialized = false
     //val myUpdate : Runnable = {} as Runnable
@@ -45,12 +45,12 @@ class DriverComponent : MasterDetailsComponent() {
     override fun wasObjectStored(p0: Any?): Boolean {
         val driver = p0 as DriverData
         logger.warn("Was object $p0 stored?")
-        return applicationController.applicationData.driverExists(driver)
+        return applicationController.driverExists(driver)
     }
 
     override fun processRemovedItems() {
         removedItems.forEach {
-            applicationController.applicationData.removeDriver(it.driver)
+            applicationController.removeDriver(it.driver)
         }
         removedItems.clear()
     }
@@ -72,12 +72,12 @@ class DriverComponent : MasterDetailsComponent() {
     }
 
     override fun createActions(fromPopup: Boolean): ArrayList<AnAction> {
-        return ArrayList<AnAction>(listOf(createAddAction(), createDeleteAction(), createCopyAction()))
+        return ArrayList(listOf(createAddAction(), createDeleteAction(), createCopyAction()))
     }
 
     override fun removePaths(vararg paths : TreePath) {
         logger.warn("Removing paths with $paths")
-        super.removePaths(*paths);
+        super.removePaths(*paths)
         paths.forEach {
             val node = it.lastPathComponent as MyNode
             removedItems.add(node.configurable as DriverConfigurable)
@@ -85,8 +85,8 @@ class DriverComponent : MasterDetailsComponent() {
     }
 
     override fun reset() {
-        reloadTree();
-        super.reset();
+        reloadTree()
+        super.reset()
     }
 
     override fun getEmptySelectionString() : String {
@@ -107,24 +107,24 @@ class DriverComponent : MasterDetailsComponent() {
                 drivers.put(driver.name, driver)
             }
         }
-        return drivers;
+        return drivers
     }
 
     fun addItemsChangeListener(runnable : Runnable) {
         addItemsChangeListener(object : ItemsChangeListener {
 
             override fun itemChanged(deletedItem : Any?) {
-                SwingUtilities.invokeLater(runnable);
+                SwingUtilities.invokeLater(runnable)
             }
 
             override fun itemsExternallyChanged() {
-                SwingUtilities.invokeLater(runnable);
+                SwingUtilities.invokeLater(runnable)
             }
-        });
+        })
     }
 
     private fun reloadTree() {
-        myRoot.removeAllChildren();
+        myRoot.removeAllChildren()
         applicationController.applicationData.drivers.forEach {
             val copy = it.copy(it.name)
             addNode(MyNode(DriverConfigurable(copy, TREE_UPDATER)), myRoot)
@@ -144,12 +144,12 @@ class DriverComponent : MasterDetailsComponent() {
         return object : DumbAwareAction("Add", "Add", IconUtil.getAddIcon()) {
             var nameCounter = 0
             init {
-                registerCustomShortcutSet(CommonShortcuts.INSERT, this@DriverComponent.myTree);
+                registerCustomShortcutSet(CommonShortcuts.INSERT, this@DriverComponent.myTree)
             }
             override fun actionPerformed(p0: AnActionEvent?) {
                 nameCounter++
                 val driver = DriverData("Driver-$nameCounter")
-                this@DriverComponent.addDriverNode(driver);
+                this@DriverComponent.addDriverNode(driver)
             }
 
         }
@@ -164,12 +164,12 @@ class DriverComponent : MasterDetailsComponent() {
             override fun actionPerformed(event: AnActionEvent) {
                 val selected = this@DriverComponent.selectedConfigurable?.editableObject as DriverData
                 val driver = selected.copy("Copy of ${selected.name}")
-                this@DriverComponent.addDriverNode(driver);
+                this@DriverComponent.addDriverNode(driver)
             }
 
             override fun update(event: AnActionEvent) {
-                super.update(event);
-                event.getPresentation().setEnabled(this@DriverComponent.getSelectedObject() != null);
+                super.update(event)
+                event.presentation.isEnabled = (this@DriverComponent.selectedObject != null)
             }
         }
     }
@@ -185,8 +185,8 @@ class DriverComponent : MasterDetailsComponent() {
             }
 
             override fun update(e: AnActionEvent) {
-                val presentation = e.getPresentation();
-                presentation.setEnabled(false);
+                val presentation = e.presentation
+                presentation.isEnabled = false
                 val selectionPaths = this@DriverComponent.myTree.selectionPaths
                 if (selectionPaths != null) {
                     //Object[] nodes = ContainerUtil.map2Array(selectionPath, new Function<TreePath, Object>() {
@@ -196,7 +196,7 @@ class DriverComponent : MasterDetailsComponent() {
                     //              }
                     //        });
                     //      if (!myCondition.value(nodes)) return;
-                    presentation.setEnabled(true);
+                    presentation.isEnabled = true
                 }
             }
         }

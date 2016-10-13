@@ -2,6 +2,7 @@ package net.contrapt.dbidea.controller
 
 /**
  * Created by mark on 4/21/16.
+ * Data needed to describe a database connection pool
  */
 data class ConnectionData(
         var name : String = "",

@@ -56,7 +56,7 @@ class ConnectionConfigurable(val connection : ConnectionData, val updater: Runna
 
     override fun apply() {
         logger.warn("Applying $connection")
-        applicationController.applicationData.updateConnection(connection)
+        applicationController.updateConnection(connection)
         original = connection.deepCopy()
         isNew = false
         connectionPanel.apply()

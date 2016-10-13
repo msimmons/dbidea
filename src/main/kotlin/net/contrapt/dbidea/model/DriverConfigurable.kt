@@ -54,7 +54,7 @@ class DriverConfigurable(val driver: DriverData, val updater: Runnable) : NamedC
 
     override fun apply() {
         logger.debug("Applying $driver")
-        applicationController.applicationData.updateDriver(driver)
+        applicationController.updateDriver(driver)
         original = driver.copy()
         isNew = false
         driverPanel.apply()

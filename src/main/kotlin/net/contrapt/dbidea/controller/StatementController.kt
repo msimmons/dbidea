@@ -14,6 +14,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.content.Content
 import com.intellij.ui.content.ContentManagerEvent
 import com.intellij.ui.content.ContentManagerListener
+import net.contrapt.dbidea.DBIdea
 import net.contrapt.dbidea.model.ResultSetTableModel
 import net.contrapt.dbidea.model.UIInvoker
 import net.contrapt.dbidea.ui.ResultSetPanel
@@ -33,10 +34,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
     var panelCount = 0
     val modelMap : MutableMap<Content, ResultSetTableModel> = mutableMapOf()
 
-    init {
-    }
-
-    override fun getComponentName(): String = "StatementController"
+    override fun getComponentName(): String = javaClass.simpleName
 
     override fun disposeComponent() {
         logger.debug("disposeComponent")
@@ -51,14 +49,15 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
     }
 
     override fun projectOpened() {
-        toolWindow = ToolWindowManager.getInstance(myProject).registerToolWindow("DbIdea", true, ToolWindowAnchor.BOTTOM)
-        toolWindow.contentManager.addContentManagerListener(cml)
+        toolWindow = ToolWindowManager.getInstance(myProject).registerToolWindow(DBIdea.APP_NAME, true, ToolWindowAnchor.BOTTOM)
+        toolWindow.contentManager.addContentManagerListener(contentListener)
         applicationController = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
     }
 
     fun executeSql(sql: String) {
-        val pool = applicationController.getPool(connectionName)
-        var model = ResultSetTableModel(connectionName, pool.connection, sql, UIInvoker(ApplicationManager.getApplication()))
+        val connectionData = applicationController.getConnection(connectionName)
+        val pool = applicationController.getPool(connectionData)
+        val model = ResultSetTableModel(connectionData, pool.connection, sql, UIInvoker(ApplicationManager.getApplication()))
         addOrReplaceContent(model)
     }
 
@@ -77,7 +76,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
     }
 
     private fun addContent(model: ResultSetTableModel) {
-        var resultSetPanel = ResultSetPanel(model)
+        val resultSetPanel = ResultSetPanel(model)
         panelCount++
         val  content = createResultSetContent(resultSetPanel, toolWindow)
         modelMap[content] = model
@@ -98,15 +97,15 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
 
         val panel = SimpleToolWindowPanel(false, true)
         val content = toolWindow.contentManager.factory.createContent(panel, "Statement-$panelCount", true)
-        panel.setContent(resultSetPanel);
+        panel.setContent(resultSetPanel)
         //panel.addFocusListener(createFocusListener());
 
         val toolbar = createToolbar(resultSetPanel)
         //toolbar.getComponent().addFocusListener(createFocusListener());
-        panel.setToolbar(toolbar.component);
+        panel.setToolbar(toolbar.component)
         content.preferredFocusableComponent = resultSetPanel
         content.setDisposer { resultSetPanel.tableModel.close() }
-        return content;
+        return content
     }
 
     fun createToolbar(panel: ResultSetPanel): ActionToolbar {
@@ -131,7 +130,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                 model.fetch()
             }
             catch(e : Exception) {
-                model.updateStatus("Execution Failed")
+                model.updateStatus("Execution Failed: $e")
                 throw(e)
             }
             model.updateStatus()
@@ -146,14 +145,14 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                     model.execute()
                 }
                 catch(e : Exception) {
-                    model.updateStatus("Execution Failed")
+                    model.updateStatus("Execution Failed: $e")
                     throw(e)
                 }
                 try {
                     model.fetch()
                 }
                 catch(e : Exception) {
-                    model.updateStatus("Fetch Failed")
+                    model.updateStatus("Fetch Failed: $e")
                     throw(e)
                 }
                 model.updateStatus()
@@ -161,18 +160,24 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
         }
     }
 
-    class CommitStatement(val model: ResultSetTableModel) : DumbAwareAction("Commit", "Commit this statement", AllIcons.Process.State.GreenOK) {
+    class CommitStatement(val model: ResultSetTableModel) : AnAction("Commit", "Commit this statement", AllIcons.Process.State.GreenOK) {
+
         override fun actionPerformed(e : AnActionEvent) {
             model.updateStatus("Committing")
             try {
                 model.commit()
             }
             catch(e : Exception) {
-                model.updateStatus("Commit failed")
+                model.updateStatus("Commit failed: $e")
                 throw(e)
             }
-            model.updateStatus()
+            model.updateStatus("Committed")
         }
+
+        override fun update(e: AnActionEvent?) {
+            templatePresentation.isEnabled = model.inTransaction()
+        }
+
 
     }
 
@@ -183,7 +188,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                 model.rollback()
             }
             catch(e : Exception) {
-                model.updateStatus("Rollback Failed")
+                model.updateStatus("Rollback Failed: $e")
                 throw(e)
             }
             model.updateStatus("Rolled Back")
@@ -198,7 +203,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                     model.cancel()
                 }
                 catch(e : Exception) {
-                    model.updateStatus("Cancel failed")
+                    model.updateStatus("Cancel failed: $e")
                     throw(e)
                 }
                 model.updateStatus("Cancelled")
@@ -214,14 +219,14 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                 model.export(writer.buffered())
             }
             catch (e:Exception) {
-                model.updateStatus("Export failed")
+                model.updateStatus("Export failed: $e")
                 throw(e)
             }
             finally {
                 writer.close()
             }
-            model.updateStatus()
-            Logger.getInstance(javaClass).debug(writer.buffer.toString())
+            model.updateStatus("Exported ${model.rowCount} rows")
+            //TODO put the data in a buffer
         }
     }
 
@@ -242,30 +247,43 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
 
         override fun setSelected(p0: AnActionEvent?, p1: Boolean) {
             model.isLimited = p1
+            if ( !p1 ) {
+                try {
+                    model.fetch()
+                }
+                catch(e : Exception) {
+                    model.updateStatus("Fetch Failed: $e")
+                    throw(e)
+                }
+                model.updateStatus()
+            }
         }
+
     }
 
-    object cml : ContentManagerListener {
+    object contentListener : ContentManagerListener {
+
+        val logger : Logger = Logger.getInstance(javaClass)
+
         override fun contentAdded(p0: ContentManagerEvent?) {
-            println("Add content $p0")
+            logger.debug("Add content $p0")
         }
 
         override fun contentRemoveQuery(p0: ContentManagerEvent?) {
-            println("Remove query $p0")
+            logger.debug("Remove query $p0")
         }
 
         override fun contentRemoved(p0: ContentManagerEvent?) {
             val component = p0?.content?.component
             when ( component ) {
-                is SimpleToolWindowPanel -> println(component)
-                else -> println("Unknown component ${p0?.content?.component}")
+                is SimpleToolWindowPanel -> logger.debug("$component")
+                else -> logger.debug("Unknown component ${p0?.content?.component}")
             }
         }
 
         override fun selectionChanged(p0: ContentManagerEvent?) {
-            println("selection $p0")
+            logger.debug("selection $p0")
         }
 
     }
-
 }

@@ -10,7 +10,6 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import net.contrapt.dbidea.controller.ApplicationController
-import net.contrapt.dbidea.controller.ConnectionData
 import net.contrapt.dbidea.controller.StatementController
 import javax.swing.ComboBoxModel
 import javax.swing.JComponent
@@ -24,9 +23,10 @@ import javax.swing.event.ListDataListener
 class ChooseConnectionAction : AnAction(), CustomComponentAction {
 
     override fun createCustomComponent(p0: Presentation?): JComponent {
-        val comboBox = ComboBox()
-        comboBox.toolTipText = "Choose DbIdea Connection"
+        val comboBox = ComboBox<String>()
+        comboBox.toolTipText = "Choose DB Connection"
         comboBox.model = ChooseConnectionModel(comboBox)
+        comboBox.setMinLength(12)
         return comboBox
     }
 
@@ -42,11 +42,7 @@ class ChooseConnectionAction : AnAction(), CustomComponentAction {
         }
     }
 
-    fun setChosenConnection(connectionData: ConnectionData?) {
-
-    }
-
-    class ChooseConnectionModel(val comboBox : ComboBox) : ComboBoxModel<String> {
+    class ChooseConnectionModel(val comboBox : ComboBox<String>) : ComboBoxModel<String> {
         val applicationComponent = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
         var selectedItem: String? = null
 

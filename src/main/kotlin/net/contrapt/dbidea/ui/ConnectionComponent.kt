@@ -5,6 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonShortcuts
 import com.intellij.openapi.actionSystem.CustomShortcutSet
 import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.ui.MasterDetailsComponent
 import com.intellij.util.IconUtil
@@ -12,7 +13,6 @@ import com.intellij.util.PlatformIcons
 import net.contrapt.dbidea.controller.ApplicationController
 import net.contrapt.dbidea.controller.ConnectionData
 import net.contrapt.dbidea.model.ConnectionConfigurable
-import org.apache.commons.logging.LogFactory
 import java.awt.event.InputEvent
 import java.awt.event.KeyEvent
 import java.util.*
@@ -25,7 +25,7 @@ import javax.swing.tree.TreePath
  */
 class ConnectionComponent : MasterDetailsComponent() {
 
-    val logger = LogFactory.getLog(javaClass)
+    val logger = Logger.getInstance(javaClass)
 
     var myInitialized = false
     //val myUpdate : Runnable = {} as Runnable
@@ -49,7 +49,7 @@ class ConnectionComponent : MasterDetailsComponent() {
 
     override fun processRemovedItems() {
         removedItems.forEach {
-            applicationController.applicationData.removeConnection(it.connection)
+            applicationController.removeConnection(it.connection)
         }
         removedItems.clear()
     }
@@ -72,12 +72,12 @@ class ConnectionComponent : MasterDetailsComponent() {
     }
 
     override fun createActions(fromPopup: Boolean): ArrayList<AnAction> {
-        return ArrayList<AnAction>(listOf(createAddAction(), createDeleteAction(), createCopyAction()))
+        return ArrayList(listOf(createAddAction(), createDeleteAction(), createCopyAction()))
     }
 
     override fun removePaths(vararg paths : TreePath) {
         logger.warn("removePaths with $paths")
-        super.removePaths(*paths);
+        super.removePaths(*paths)
         paths.forEach {
             val node = it.lastPathComponent as MyNode
             removedItems.add(node.configurable as ConnectionConfigurable)
@@ -86,8 +86,8 @@ class ConnectionComponent : MasterDetailsComponent() {
 
     override fun reset() {
         logger.warn("reset")
-        reloadTree();
-        super.reset();
+        reloadTree()
+        super.reset()
     }
 
     override fun getEmptySelectionString() : String {
@@ -109,24 +109,24 @@ class ConnectionComponent : MasterDetailsComponent() {
                 connections.put(connection.name, connection)
             }
         }
-        return connections;
+        return connections
     }
 
     fun addItemsChangeListener(runnable : Runnable) {
         addItemsChangeListener(object : ItemsChangeListener {
 
             override fun itemChanged(deletedItem : Any?) {
-                SwingUtilities.invokeLater(runnable);
+                SwingUtilities.invokeLater(runnable)
             }
 
             override fun itemsExternallyChanged() {
-                SwingUtilities.invokeLater(runnable);
+                SwingUtilities.invokeLater(runnable)
             }
-        });
+        })
     }
 
     private fun reloadTree() {
-        myRoot.removeAllChildren();
+        myRoot.removeAllChildren()
         logger.warn("Reloading tree with ${applicationController.applicationData.connections}")
         applicationController.applicationData.connections.forEach {
             val copy = it.deepCopy()
@@ -147,12 +147,12 @@ class ConnectionComponent : MasterDetailsComponent() {
         return object : DumbAwareAction("Add", "Add", IconUtil.getAddIcon()) {
             var nameCounter = 0
             init {
-                registerCustomShortcutSet(CommonShortcuts.INSERT, this@ConnectionComponent.myTree);
+                registerCustomShortcutSet(CommonShortcuts.INSERT, this@ConnectionComponent.myTree)
             }
             override fun actionPerformed(p0: AnActionEvent?) {
                 nameCounter++
                 val connection = ConnectionData("Connection-$nameCounter")
-                this@ConnectionComponent.addConnectionNode(connection);
+                this@ConnectionComponent.addConnectionNode(connection)
             }
 
         }
@@ -167,12 +167,12 @@ class ConnectionComponent : MasterDetailsComponent() {
             override fun actionPerformed(event: AnActionEvent) {
                 val selected = this@ConnectionComponent.selectedConfigurable?.editableObject as ConnectionData
                 val connection = selected.copy("Copy of ${selected.name}")
-                this@ConnectionComponent.addConnectionNode(connection);
+                this@ConnectionComponent.addConnectionNode(connection)
             }
 
             override fun update(event: AnActionEvent) {
-                super.update(event);
-                event.getPresentation().setEnabled(this@ConnectionComponent.getSelectedObject() != null);
+                super.update(event)
+                event.presentation.isEnabled = (this@ConnectionComponent.selectedObject != null)
             }
         }
     }
@@ -188,8 +188,8 @@ class ConnectionComponent : MasterDetailsComponent() {
             }
 
             override fun update(e: AnActionEvent) {
-                val presentation = e.getPresentation();
-                presentation.setEnabled(false);
+                val presentation = e.presentation
+                presentation.isEnabled = false
                 val selectionPaths = this@ConnectionComponent.myTree.selectionPaths
                 if (selectionPaths != null) {
                     //Object[] nodes = ContainerUtil.map2Array(selectionPath, new Function<TreePath, Object>() {
@@ -199,7 +199,7 @@ class ConnectionComponent : MasterDetailsComponent() {
                     //              }
                     //        });
                     //      if (!myCondition.value(nodes)) return;
-                    presentation.setEnabled(true);
+                    presentation.isEnabled = true
                 }
             }
         }

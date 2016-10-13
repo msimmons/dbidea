@@ -1,5 +1,7 @@
 package net.contrapt.dbidea.model
 
+import com.intellij.openapi.diagnostic.Logger
+import net.contrapt.dbidea.controller.ConnectionData
 import java.io.BufferedWriter
 import java.sql.*
 import java.text.SimpleDateFormat
@@ -12,21 +14,23 @@ import kotlin.system.measureTimeMillis
 /**
  * Table model for the given sql statement and connection
  */
-class ResultSetTableModel(val connectionName : String, val connection: Connection, val sql: String, val invoker: UIInvoker) : AbstractTableModel() {
+class ResultSetTableModel(val connectionData: ConnectionData, val connection: Connection, val sql: String, val invoker: UIInvoker) : AbstractTableModel() {
+
+    val logger : Logger = Logger.getInstance(javaClass)
 
     private val statement: PreparedStatement = connection.prepareStatement(sql)
 
     private var results: ResultSet? = null
-    private var rows: MutableList<MutableList<Any>> = mutableListOf()
+    private var rows: MutableList<MutableList<Any?>> = mutableListOf()
     private var updateCount = -1
 
     var isPinned = false
     var isLimited = true
-    var autocommit = false
+    var autocommit = connectionData.autocommit
 
-    var fetchBatchSize = 500
-    var fetchLimit = 500
-    var fetchSleepTime = 1000
+    var fetchBatchSize = connectionData.fetchLimit
+    var fetchLimit = connectionData.fetchLimit
+    var fetchSleepTime = 10
 
     var executionTime = 0L
         private set
@@ -68,7 +72,7 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
      * Return connection info as string
      */
     fun getConnectionInfo() :String {
-        return connectionName
+        return connectionData.name
     }
 
     /**
@@ -96,17 +100,21 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
         }
     }
 
+    fun inTransaction() : Boolean {
+        return !autocommit && updateCount > 0
+    }
+
     /**
      * Fetch the rows from the result set
      */
     fun fetch() {
         if (results == null) return
         fetchTime = measureTimeMillis {
-            val tempRows: MutableList<MutableList<Any>> = mutableListOf()
+            val tempRows: MutableList<MutableList<Any?>> = mutableListOf()
             var lastRow = 0
             val columnCount = results?.metaData?.columnCount ?: 0
             while ( results?.next() ?: false ) {
-                val row = Array<Any>(columnCount, {})
+                val row = Array<Any?>(columnCount, {})
                 for (j in 0..columnCount - 1) {
                     row[j] = convertToDisplay(results, j + 1)
                 }
@@ -121,8 +129,10 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
                     lastRow = rows.size
                     sleep(fetchSleepTime.toLong())
                 }
+                updateStatus("Fetched ${rows.size}")
             }
             if (tempRows.size > 0) addRows(tempRows, lastRow)
+            updateStatus("Fetch done")
         }
     }
 
@@ -131,9 +141,9 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
      */
     private fun sleep(milliseconds: Long) {
         try {
-            sleep(milliseconds)
+            Thread.sleep(milliseconds)
         } catch (e: InterruptedException) {
-            println("${Thread.currentThread()}  interrupted: $e")
+            logger.debug("${Thread.currentThread()}  interrupted: $e")
         }
 
     }
@@ -141,7 +151,7 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
     /**
      * Add rows to the table model
      */
-    private fun addRows(rowsToAdd: MutableList<MutableList<Any>>, start: Int) {
+    private fun addRows(rowsToAdd: MutableList<MutableList<Any?>>, start: Int) {
         rows.addAll(rowsToAdd)
         invoker.invokeLater {
             fireTableRowsInserted(start, rows.size - 1)
@@ -152,12 +162,12 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
      * Cancel the current statement if possible
      */
     fun cancel() {
-        statement.cancel()
-        connection.rollback()
+        if ( !statement.isClosed) statement.cancel()
+        if ( !connection.isClosed) connection.rollback()
         try {
             results?.close()
         } catch (e: SQLException) {
-            System.err.println("$javaClass.cancel(): $e")
+            logger.debug("$javaClass.cancel(): $e")
         }
         results = null
     }
@@ -166,14 +176,20 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
      * Commit the current connection
      */
     fun commit() {
-        connection.commit()
+        if ( !connection.isClosed) {
+            updateCount=-1
+            connection.commit()
+        }
     }
 
     /**
      * Rollback the current connection
      */
     fun rollback() {
-        connection.rollback()
+        if ( !connection.isClosed) {
+            updateCount=-1
+            connection.rollback()
+        }
     }
 
     /**
@@ -186,14 +202,15 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
         if ( headerString.length == 0 ) return
         out.write(headerString)
         out.newLine()
-        0.rangeTo(table.rowCount).forEach { row ->
-            var rowString = 0.rangeTo(table.columnCount).joinToString(",") { column ->
+        0.rangeTo(table.rowCount-1).forEach { row ->
+            val rowString = 0.rangeTo(table.columnCount-1).joinToString(",") { column ->
                 var value = table.model.getValueAt(row, column)?.toString() ?: ""
                 if ( value.contains("\"") ) value = "\"$value\""
                 value
             }
-            out.write(rowString)
-            out.newLine()
+            logger.debug(rowString)
+            //out.write(rowString)
+            //out.newLine()
         }
     }
 
@@ -203,14 +220,14 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
     fun close() {
         cancel()
         try {
-            statement.close()
+            if ( !statement.isClosed) statement.close()
         } catch (e: SQLException) {
-            System.err.println("$javaClass.close(): $e")
+            logger.warn("Closing statement: $e")
         }
         try {
-            connection.close()
+            if ( !connection.isClosed) connection.close()
         } catch (e: SQLException) {
-            e.printStackTrace()
+            logger.warn("Closing connection: $e")
         }
     }
 
@@ -230,6 +247,7 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
         when (results?.metaData?.getColumnType(column + 1)) {
             null -> return String::class.java
             Types.DATE, Types.TIMESTAMP, Types.TIME -> return String::class.java
+            Types.BOOLEAN -> return Boolean::class.java
             Types.OTHER -> return String::class.java
             else -> return Class.forName(results?.metaData?.getColumnClassName(column + 1))
         }
@@ -254,14 +272,14 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
      * Return a string describing whether rows were selected or affected by DML
      */
     val action: String
-        get() = "$rowCount ${rowString()} ${if (updateCount >= 0) " affected" else " retrieved"} ${hasMoreText()}"
+        get() = if (updateCount >=0) "${rowString()}  affected" else "${hasMoreText()} ${rowString()}"
 
     /**
      * Return the appropriate string row or rows depending on row count
      */
-    private fun rowString(): String = if ( rowCount == 1 ) "row" else "rows"
+    private fun rowString(): String = if ( rowCount == 1 ) "$rowCount row" else "$rowCount rows"
 
-    private fun hasMoreText(): String = if (results?.isAfterLast ?: true) "" else "...more available"
+    private fun hasMoreText(): String = if (results?.isAfterLast ?: true) "fetched all" else "fetched first"
 
     /**
      * Use result set meta data to set column attributes in the column model
@@ -289,7 +307,7 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
      * Convert certain objects (esp date/timestamp) returned from sql to appropriate
      * displayable objects
      */
-    private fun convertToDisplay(row: ResultSet?, column: Int): Any {
+    private fun convertToDisplay(row: ResultSet?, column: Int): Any? {
         if (row == null) return ""
         try {
             when (row.metaData.getColumnType(column)) {
@@ -298,7 +316,7 @@ class ResultSetTableModel(val connectionName : String, val connection: Connectio
                     return if (value == null) "" else dateFormat.format(value)
                 }
                 Types.BINARY, Types.VARBINARY, Types.LONGVARBINARY, Types.BLOB, Types.CLOB, Types.OTHER -> return row.getString(column)
-                else -> return row.getObject(column) ?: ""
+                else -> return row.getObject(column) ?: null
             }
         } catch (e: Exception) {
             return e.toString()

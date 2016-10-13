@@ -20,11 +20,13 @@ class ResultSetPanel(val tableModel: ResultSetTableModel) : JPanel() {
         resultPanel = JScrollPane(tableModel.table)
         resultPanel.autoscrolls = true
         // Create a panel to show status, sql and connection info
-        val connectionText = JTextField(tableModel.getConnectionInfo(), 20)
+        val connectionText = JTextField(tableModel.getConnectionInfo(), 15)
         connectionText.isEditable = false
-        val sqlText = JTextField(tableModel.sql, 80)
+        val sqlText = JTextField(tableModel.sql, 90)
+        sqlText.toolTipText = tableModel.sql
         sqlText.isEditable=false
-        statusText = JTextField("", 40)
+        sqlText.caretPosition=0
+        statusText = JTextField("", 30)
         statusText.isEditable = false
         statusText.document = tableModel.statusModel
         statusPanel = JPanel()
