@@ -1,12 +1,16 @@
 package net.contrapt.dbidea.controller
 
 import com.intellij.icons.AllIcons
+import com.intellij.notification.Notification
+import com.intellij.notification.NotificationType
+import com.intellij.notification.Notifications
 import com.intellij.openapi.actionSystem.*
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.AbstractProjectComponent
 import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.DumbAwareAction
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.ui.Messages
 import com.intellij.openapi.ui.SimpleToolWindowPanel
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowAnchor
@@ -18,7 +22,8 @@ import net.contrapt.dbidea.DBIdea
 import net.contrapt.dbidea.model.ResultSetTableModel
 import net.contrapt.dbidea.model.UIInvoker
 import net.contrapt.dbidea.ui.ResultSetPanel
-import java.io.StringWriter
+import java.io.File
+import java.io.OutputStreamWriter
 
 /**
  * Created by mark on 4/4/16.
@@ -131,7 +136,8 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
             }
             catch(e : Exception) {
                 model.updateStatus("Execution Failed: $e")
-                throw(e)
+                //throw(e)
+                Notifications.Bus.notify(Notification(DBIdea.APP_ID, e.message ?: "Unkown Exception", e.cause?.message ?: "NA", NotificationType.ERROR))
             }
             model.updateStatus()
         })
@@ -217,8 +223,10 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
 
     class ExportResults(val model: ResultSetTableModel) : DumbAwareAction("Export", "Export results to csv", AllIcons.Actions.Export) {
         override fun actionPerformed(e : AnActionEvent) {
+            val fileName = Messages.showInputDialog("message", "title", Messages.getQuestionIcon(), e.project?.basePath, null)
+            if ( fileName == null ) return
             model.updateStatus("Exporting")
-            val writer = StringWriter()
+            val writer = OutputStreamWriter(File(fileName).outputStream())
             try {
                 model.export(writer.buffered())
             }
@@ -227,6 +235,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                 throw(e)
             }
             finally {
+                writer.flush()
                 writer.close()
             }
             model.updateStatus("Exported ${model.rowCount} rows")
