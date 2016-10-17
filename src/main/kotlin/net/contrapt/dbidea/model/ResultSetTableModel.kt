@@ -208,10 +208,10 @@ class ResultSetTableModel(val connectionData: ConnectionData, val connection: Co
                 if ( value.contains("\"") ) value = "\"$value\""
                 value
             }
-            logger.debug(rowString)
-            //out.write(rowString)
-            //out.newLine()
+            out.write(rowString)
+            out.newLine()
         }
+        out.flush()
     }
 
     /**
