@@ -5,7 +5,7 @@ import com.intellij.openapi.actionSystem.AnActionEvent
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.IdeActions
 import com.intellij.openapi.editor.actionSystem.EditorActionManager
-import net.contrapt.dbidea.controller.StatementController
+import net.contrapt.dbidea.controller.ToolWindowController
 
 /**
  * Created by mark on 2/8/16.
@@ -18,7 +18,7 @@ class QueryAction : AnAction() {
         val editor = e.getData(CommonDataKeys.EDITOR)
         val sql = editor?.selectionModel?.selectedText
         if ( project != null && sql != null ) {
-            val component = project.getComponent(StatementController::class.java)
+            val component = project.getComponent(ToolWindowController::class.java)
             component.executeSql(sql)
         }
     }

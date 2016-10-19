@@ -20,22 +20,27 @@ import com.intellij.ui.content.ContentManagerEvent
 import com.intellij.ui.content.ContentManagerListener
 import net.contrapt.dbidea.DBIdea
 import net.contrapt.dbidea.model.ResultSetTableModel
+import net.contrapt.dbidea.model.SchemaTreeModel
 import net.contrapt.dbidea.model.UIInvoker
 import net.contrapt.dbidea.ui.ResultSetPanel
+import net.contrapt.dbidea.ui.SchemaTreePanel
 import java.io.File
 import java.io.OutputStreamWriter
 
 /**
- * Created by mark on 4/4/16.
- * Orchestrate table model and view
+ * Control operation of the main tool window
  */
-class StatementController(project: Project) : AbstractProjectComponent(project) {
+class ToolWindowController(project: Project) : AbstractProjectComponent(project) {
 
     val logger : Logger = Logger.getInstance(javaClass)
 
     lateinit var toolWindow: ToolWindow
     lateinit var applicationController : ApplicationController
-    lateinit var connectionName : String
+    var connectionName : String = ""
+       set(value) {
+           field = value
+           initSchema()
+       }
     var panelCount = 0
     val modelMap : MutableMap<Content, ResultSetTableModel> = mutableMapOf()
 
@@ -60,21 +65,48 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
     }
 
     fun executeSql(sql: String) {
+        if ( connectionName.isNullOrEmpty() ) {
+            Notifications.Bus.notify(Notification(DBIdea.APP_ID, "No Connection", "You have not chosen a connection", NotificationType.WARNING))
+            return
+        }
         val connectionData = applicationController.getConnection(connectionName)
         val pool = applicationController.getPool(connectionData)
         val model = ResultSetTableModel(connectionData, pool.connection, sql, UIInvoker(ApplicationManager.getApplication()))
         addOrReplaceContent(model)
     }
 
+    fun initSchema() {
+        if ( connectionName.isNullOrEmpty() ) {
+            Notifications.Bus.notify(Notification(DBIdea.APP_ID, "No Connection", "You have not chosen a connection", NotificationType.WARNING))
+            return
+        }
+        val connectionData = applicationController.getConnection(connectionName)
+        val pool = applicationController.getPool(connectionData)
+        val model = SchemaTreeModel(connectionData, pool, UIInvoker(ApplicationManager.getApplication()))
+        addSchemaContent(model)
+        doSchema(model)
+    }
+
+    private fun addSchemaContent(model: SchemaTreeModel) {
+        val schemaPanel = SchemaTreePanel(model)
+        toolWindow.contentManager.addContent(createSchemaContent(schemaPanel))
+    }
+
     private fun addOrReplaceContent(model: ResultSetTableModel) {
+        if ( toolWindow.contentManager.contentCount == 0 ) {
+            initSchema()
+        }
         val selectedContent = toolWindow.contentManager.selectedContent
         when (selectedContent) {
             null -> addContent(model)
             else -> {
-                val currentModel = modelMap[selectedContent] ?: throw IllegalStateException("Expected to find model")
-                when ( currentModel.isPinned ) {
-                    true -> addContent(model)
-                    else -> replaceContent(currentModel, model, selectedContent)
+                val currentModel = modelMap[selectedContent]
+                when (currentModel) {
+                    null -> addContent(model)
+                    else -> when(currentModel.isPinned) {
+                        true -> addContent(model)
+                        else -> replaceContent(currentModel, model, selectedContent)
+                    }
                 }
             }
         }
@@ -83,11 +115,11 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
     private fun addContent(model: ResultSetTableModel) {
         val resultSetPanel = ResultSetPanel(model)
         panelCount++
-        val  content = createResultSetContent(resultSetPanel, toolWindow)
+        val  content = createResultSetContent(resultSetPanel)
         modelMap[content] = model
         toolWindow.contentManager.addContent(content)
         toolWindow.contentManager.setSelectedContent(content)
-        toolWindow.contentManager.requestFocus(content, true)
+        //toolWindow.contentManager.requestFocus(content, true)
         toolWindow.show { doExecute(model) }
     }
 
@@ -98,22 +130,34 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
         addContent(newModel)
     }
 
-    fun createResultSetContent(resultSetPanel: ResultSetPanel, toolWindow: ToolWindow): Content {
+    fun createSchemaContent(schemaPanel : SchemaTreePanel) : Content {
+        val panel = SimpleToolWindowPanel(false, true)
+        panel.setContent(schemaPanel)
+        //panel.addFocusListener(createFocusListener());
+        //val toolbar = createStatementToolbar(schemaresultSetPanel)
+        //toolbar.getComponent().addFocusListener(createFocusListener());
+        //panel.setToolbar(toolbar.component)
+        val content = toolWindow.contentManager.factory.createContent(panel, "Schema", false)
+        //content.preferredFocusableComponent = schemaPanel
+        //content.setDisposer { resultSetPanel.tableModel.close() }
+        return content
+    }
+
+    fun createResultSetContent(resultSetPanel: ResultSetPanel): Content {
 
         val panel = SimpleToolWindowPanel(false, true)
-        val content = toolWindow.contentManager.factory.createContent(panel, "Statement-$panelCount", true)
         panel.setContent(resultSetPanel)
         //panel.addFocusListener(createFocusListener());
-
-        val toolbar = createToolbar(resultSetPanel)
+        val toolbar = createStatementToolbar(resultSetPanel)
         //toolbar.getComponent().addFocusListener(createFocusListener());
         panel.setToolbar(toolbar.component)
+        val content = toolWindow.contentManager.factory.createContent(panel, "Statement-$panelCount", true)
         content.preferredFocusableComponent = resultSetPanel
         content.setDisposer { resultSetPanel.tableModel.close() }
         return content
     }
 
-    fun createToolbar(panel: ResultSetPanel): ActionToolbar {
+    fun createStatementToolbar(panel: ResultSetPanel): ActionToolbar {
         val group = DefaultActionGroup()
         group.add(ExecuteStatement(panel.tableModel))
         group.add(CommitStatement(panel.tableModel))
@@ -125,6 +169,17 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
         val toolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, false)
         toolbar.setTargetComponent(panel)
         return toolbar
+    }
+
+    fun doSchema(model: SchemaTreeModel) {
+        ApplicationManager.getApplication().executeOnPooledThread({
+            try {
+                model.querySchema()
+            }
+            catch(e : Exception) {
+                Notifications.Bus.notify(Notification(DBIdea.APP_ID, e.message ?: "Unknown Exception", "Error querying schema", NotificationType.ERROR))
+            }
+        })
     }
 
     fun doExecute(model: ResultSetTableModel) {
@@ -239,7 +294,7 @@ class StatementController(project: Project) : AbstractProjectComponent(project) 
                 writer.close()
             }
             model.updateStatus("Exported ${model.rowCount} rows")
-            //TODO put the data in a buffer
+            //TODO put the catalogName in a buffer
         }
     }
 

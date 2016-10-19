@@ -282,7 +282,7 @@ class ResultSetTableModel(val connectionData: ConnectionData, val connection: Co
     private fun hasMoreText(): String = if (results?.isAfterLast ?: true) "fetched all" else "fetched first"
 
     /**
-     * Use result set meta data to set column attributes in the column model
+     * Use result set meta catalogName to set column attributes in the column model
      */
     private fun setColumnAttributes() {
         val meta = results?.metaData

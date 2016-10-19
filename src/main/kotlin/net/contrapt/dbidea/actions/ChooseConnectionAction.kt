@@ -10,7 +10,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import net.contrapt.dbidea.controller.ApplicationController
-import net.contrapt.dbidea.controller.StatementController
+import net.contrapt.dbidea.controller.ToolWindowController
 import javax.swing.ComboBoxModel
 import javax.swing.JComponent
 import javax.swing.event.ListDataListener
@@ -60,7 +60,7 @@ class ChooseConnectionAction : AnAction(), CustomComponentAction {
                 println("Didn't find the project")
                 return
             }
-            project.getComponent(StatementController::class.java).connectionName = selectedItem as String
+            project.getComponent(ToolWindowController::class.java).connectionName = selectedItem as String
         }
 
         override fun getSelectedItem(): Any? {

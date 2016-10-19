@@ -34,8 +34,8 @@
 
     <project-components>
         <component>
-            <interface-class>net.contrapt.dbidea.controller.StatementController</interface-class>
-            <implementation-class>net.contrapt.dbidea.controller.StatementController</implementation-class>
+            <interface-class>net.contrapt.dbidea.controller.ToolWindowController</interface-class>
+            <implementation-class>net.contrapt.dbidea.controller.ToolWindowController</implementation-class>
             <loadForDefaultProject>true</loadForDefaultProject>
         </component>
     </project-components>
