@@ -174,7 +174,7 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
     fun doSchema(model: SchemaTreeModel) {
         ApplicationManager.getApplication().executeOnPooledThread({
             try {
-                model.querySchema()
+                model.initTree()
             }
             catch(e : Exception) {
                 Notifications.Bus.notify(Notification(DBIdea.APP_ID, e.message ?: "Unknown Exception", "Error querying schema", NotificationType.ERROR))
