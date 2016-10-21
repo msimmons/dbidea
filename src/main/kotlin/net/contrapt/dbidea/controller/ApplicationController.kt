@@ -132,9 +132,10 @@ class ApplicationController : ApplicationComponent, PersistentStateComponent<App
         pool.initialSize = 2
         pool.maxActive = 100
         pool.maxIdle = 2
+        pool.minIdle = 2
         pool.isTestOnBorrow = true
         pool.validationQuery = "select user() from dual" //TODO make part of connection config
-        pool.defaultAutoCommit = false
+        pool.defaultAutoCommit = connectionData.autocommit
         return pool
     }
 

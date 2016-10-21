@@ -53,32 +53,38 @@ sealed class DBTreeNode : DefaultMutableTreeNode(null) {
         override fun toString() = "Schema: $schemaName"
 
         override fun addChildren(connection: Connection) {
-            val objectsByType = mutableMapOf<String, MutableSet<DBObjectTreeNode>>()
+            val objectsByType = mutableMapOf<String, MutableSet<TableTreeNode>>()
             val tables = connection.metaData.getTables(null, schemaName, null, null)
             while (tables.next()) {
-                val node = DBObjectTreeNode(tables)
-                val objectSet = objectsByType.getOrElse(node.type, {mutableSetOf<DBObjectTreeNode>()})
+                val node = TableTreeNode(tables)
+                val objectSet = objectsByType.getOrElse(node.type, {mutableSetOf<TableTreeNode>()})
                 objectSet.add(node)
                 objectsByType.put(node.type, objectSet)
             }
             objectsByType.keys.forEach {
                 val typeNode = DefaultMutableTreeNode(it)
-                objectsByType.get(it)?.forEach {
+                objectsByType[it]?.forEach {
                     typeNode.add(it)
                 }
                 add(typeNode)
             }
-            // TODO Other types of children
+            // Procedures
+            val procedures = connection.metaData.getProcedures(null, schemaName, null)
+            val procedureNode = DefaultMutableTreeNode("PROCEDURE")
+            while (procedures.next()) {
+                procedureNode.add(ProcedureTreeNode(procedures))
+            }
+            if (procedureNode.childCount>0) add(procedureNode)
         }
 
         override fun getDetails(connection: Connection) {}
     }
 
     /**
-     * Represents a database object contained within a schema
+     * Represents a database object contained within a schema retrieved by the
+     * getTables() method of db meta data
      */
-    class DBObjectTreeNode(row: ResultSet) : DBTreeNode() {
-
+    class TableTreeNode(row: ResultSet) : DBTreeNode() {
         init {
             allowsChildren=false
         }
@@ -87,22 +93,51 @@ sealed class DBTreeNode : DefaultMutableTreeNode(null) {
             //NOOP
         }
 
-        val schemaName = row.getString("TABLE_SCHEM")
-        val name = row.getString("TABLE_NAME")
-        val type = row.getString("TABLE_TYPE")
-        val remarks = row.getString("REMARKS")
+        val schemaName : String = row.getString("TABLE_SCHEM")
+        val name : String = row.getString("TABLE_NAME")
+        val type : String = row.getString("TABLE_TYPE")
+        val remarks : String? = row.getString("REMARKS")
 
-        override fun toString() = "$name"
+        override fun toString() = name
 
         override fun getDetails(connection: Connection) {
             val columns = connection.metaData.getColumns(null, schemaName, name, null)
             while ( columns.next() ) {
-                println("${columns.getString("COLUMN_NAME")}")
+                println(columns.getString("COLUMN_NAME"))
+            }
+            val indexes = connection.metaData.getIndexInfo(null, schemaName, name, false, false)
+            while (indexes.next()) {
+                println(indexes.getString("INDEX_NAME"))
             }
         }
-
     }
+
+    /**
+     * Represents database object retrieved by the get getProcedures, typically stored procedures
+     */
+    class ProcedureTreeNode(row: ResultSet) : DBTreeNode() {
+        init {
+            allowsChildren=false
+        }
+
+        override fun addChildren(connection: Connection) {
+            //NOOP
+        }
+
+        val schemaName : String = row.getString("PROCEDURE_SCHEM")
+        val name : String = row.getString("PROCEDURE_NAME")
+        val type : Int = row.getInt("PROCEDURE_TYPE")
+        val remarks : String? = row.getString("REMARKS")
+        val specificName : String = row.getString("SPECIFIC_NAME")
+
+        override fun toString() = name
+
+        override fun getDetails(connection: Connection) {
+            val columns = connection.metaData.getProcedureColumns(null, schemaName, name, null)
+            while ( columns.next() ) {
+                println(columns.getString("COLUMN_NAME"))
+            }
+        }
+    }
+
 }
-
-
-

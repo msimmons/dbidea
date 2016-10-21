@@ -17,6 +17,7 @@ import javax.swing.tree.TreeNode
 
 /**
  * Data model for displaying the schema as a tree
+ *
  */
 class SchemaTreeModel(val connectionData: ConnectionData, val dataSource: DataSource, val invoker: UIInvoker) : DefaultTreeModel(DBTreeNode.ConnectionTreeNode(connectionData), true) {
 
