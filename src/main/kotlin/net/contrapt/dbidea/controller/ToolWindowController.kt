@@ -20,6 +20,7 @@ import com.intellij.ui.content.ContentManagerEvent
 import com.intellij.ui.content.ContentManagerListener
 import net.contrapt.dbidea.DBIdea
 import net.contrapt.dbidea.model.ResultSetTableModel
+import net.contrapt.dbidea.model.SchemaTableModel
 import net.contrapt.dbidea.model.SchemaTreeModel
 import net.contrapt.dbidea.model.UIInvoker
 import net.contrapt.dbidea.ui.ResultSetPanel
@@ -82,13 +83,14 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
         }
         val connectionData = applicationController.getConnection(connectionName)
         val pool = applicationController.getPool(connectionData)
-        val model = SchemaTreeModel(connectionData, pool, UIInvoker(ApplicationManager.getApplication()))
-        addSchemaContent(model)
-        doSchema(model)
+        val tableModel = SchemaTableModel(UIInvoker(ApplicationManager.getApplication()))
+        val treeModel = SchemaTreeModel(connectionData, pool, UIInvoker(ApplicationManager.getApplication()), tableModel)
+        addSchemaContent(treeModel, tableModel)
+        doSchema(treeModel)
     }
 
-    private fun addSchemaContent(model: SchemaTreeModel) {
-        val schemaPanel = SchemaTreePanel(model)
+    private fun addSchemaContent(treeModel: SchemaTreeModel, tableModel: SchemaTableModel) {
+        val schemaPanel = SchemaTreePanel(treeModel, tableModel)
         toolWindow.contentManager.addContent(createSchemaContent(schemaPanel))
     }
 
