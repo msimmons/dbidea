@@ -91,6 +91,8 @@ class ResultSetTableModel(val connectionData: ConnectionData, val connection: Co
         }
         updateCount = statement.updateCount
         results = statement.resultSet
+        // Commit for selects to release any locks
+        if ( updateCount <= 0 ) connection.commit()
         invoker.invokeLater {
             if (table.columnModel.columnCount == 0) {
                 table.autoCreateColumnsFromModel = true
