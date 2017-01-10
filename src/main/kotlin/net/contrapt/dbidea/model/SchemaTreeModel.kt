@@ -30,11 +30,28 @@ class SchemaTreeModel(val connectionData: ConnectionData, val dataSource: DataSo
 
     fun initTree() {
         val myRoot = root as DBTreeNode.ConnectionTreeNode
+        if ( myRoot.childCount > 0 ) return
         addChildren(myRoot)
     }
 
+    fun refreshTree() {
+        val myRoot = root as DBTreeNode.ConnectionTreeNode
+        removeChildren(myRoot)
+        addChildren(myRoot)
+    }
+
+    fun removeChildren(node: DBTreeNode) {
+        if ( node.childCount == 0 ) return
+        ApplicationManager.getApplication().executeOnPooledThread({
+            val connection = dataSource.connection
+            val children = node.children().toList().toTypedArray()
+            val indices = (0..node.childCount-1).toList().toIntArray()
+            node.removeAllChildren()
+            nodesWereRemoved(node, indices, children)
+        })
+    }
+
     fun addChildren(node : DBTreeNode) {
-        if ( node.childCount > 0 ) return
         ApplicationManager.getApplication().executeOnPooledThread({
             val nodeClass = node.javaClass.simpleName
             val connection = dataSource.connection

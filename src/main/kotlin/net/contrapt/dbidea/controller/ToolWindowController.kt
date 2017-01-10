@@ -136,12 +136,13 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
         val panel = SimpleToolWindowPanel(false, true)
         panel.setContent(schemaPanel)
         //panel.addFocusListener(createFocusListener());
-        //val toolbar = createStatementToolbar(schemaresultSetPanel)
+        val toolbar = createSchemaToolbar(schemaPanel)
         //toolbar.getComponent().addFocusListener(createFocusListener());
-        //panel.setToolbar(toolbar.component)
-        val content = toolWindow.contentManager.factory.createContent(panel, "Schema", false)
-        //content.preferredFocusableComponent = schemaPanel
-        //content.setDisposer { resultSetPanel.tableModel.close() }
+        panel.setToolbar(toolbar.component)
+        val content = toolWindow.contentManager.factory.createContent(panel, "Schema: $connectionName", false)
+        content.preferredFocusableComponent = schemaPanel
+        content.isCloseable = false
+        //content.setDisposer { }
         return content
     }
 
@@ -173,6 +174,14 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
         return toolbar
     }
 
+    fun createSchemaToolbar(panel: SchemaTreePanel) : ActionToolbar {
+        val group = DefaultActionGroup()
+        group.add(RefreshSchema(panel.treeModel))
+        val toolbar = ActionManager.getInstance().createActionToolbar(ActionPlaces.UNKNOWN, group, false)
+        toolbar.setTargetComponent(panel)
+        return toolbar
+    }
+
     fun doSchema(model: SchemaTreeModel) {
         ApplicationManager.getApplication().executeOnPooledThread({
             try {
@@ -198,6 +207,14 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
             }
             model.updateStatus()
         })
+    }
+
+    class RefreshSchema(val model: SchemaTreeModel) : DumbAwareAction("Refresh", "Refresh Connection Tree", AllIcons.Actions.Refresh) {
+        override fun actionPerformed(e: AnActionEvent) {
+            ApplicationManager.getApplication().executeOnPooledThread {
+                model.refreshTree()
+            }
+        }
     }
 
     class ExecuteStatement(val model: ResultSetTableModel) : DumbAwareAction("Execute", "Execute this statement again", AllIcons.General.Run) {
