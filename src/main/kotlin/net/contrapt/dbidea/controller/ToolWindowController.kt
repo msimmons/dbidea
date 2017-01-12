@@ -27,6 +27,8 @@ import net.contrapt.dbidea.ui.ResultSetPanel
 import net.contrapt.dbidea.ui.SchemaTreePanel
 import java.io.File
 import java.io.OutputStreamWriter
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
  * Control operation of the main tool window
@@ -40,10 +42,11 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
     var connectionName : String = ""
        set(value) {
            field = value
-           initSchema()
+           describeSchema()
        }
     var panelCount = 0
-    val modelMap : MutableMap<Content, ResultSetTableModel> = mutableMapOf()
+    val resultModelMap: MutableMap<Content, ResultSetTableModel> = mutableMapOf()
+    val schemaModelMap: MutableMap<String, SchemaTreeModel> = mutableMapOf()
 
     override fun getComponentName(): String = javaClass.simpleName
 
@@ -76,7 +79,19 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
         addOrReplaceContent(model)
     }
 
-    fun initSchema() {
+    fun describeSchema() {
+        if ( connectionName.isNullOrEmpty() ) {
+            Notifications.Bus.notify(Notification(DBIdea.APP_ID, "No Connection", "You have not chosen a connection", NotificationType.WARNING))
+            return
+        }
+        val schemaTreeModel = schemaModelMap[connectionName]
+        when(schemaTreeModel) {
+            null -> initSchemaContent()
+            else -> schemaTreeModel.refreshTree()
+        }
+    }
+
+    fun initSchemaContent() {
         if ( connectionName.isNullOrEmpty() ) {
             Notifications.Bus.notify(Notification(DBIdea.APP_ID, "No Connection", "You have not chosen a connection", NotificationType.WARNING))
             return
@@ -86,6 +101,7 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
         val tableModel = SchemaTableModel(UIInvoker(ApplicationManager.getApplication()))
         val treeModel = SchemaTreeModel(connectionData, pool, UIInvoker(ApplicationManager.getApplication()), tableModel)
         addSchemaContent(treeModel, tableModel)
+        schemaModelMap[connectionName] = treeModel
         doSchema(treeModel)
     }
 
@@ -96,13 +112,13 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
 
     private fun addOrReplaceContent(model: ResultSetTableModel) {
         if ( toolWindow.contentManager.contentCount == 0 ) {
-            initSchema()
+            initSchemaContent()
         }
         val selectedContent = toolWindow.contentManager.selectedContent
         when (selectedContent) {
             null -> addContent(model)
             else -> {
-                val currentModel = modelMap[selectedContent]
+                val currentModel = resultModelMap[selectedContent]
                 when (currentModel) {
                     null -> addContent(model)
                     else -> when(currentModel.isPinned) {
@@ -118,7 +134,7 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
         val resultSetPanel = ResultSetPanel(model)
         panelCount++
         val  content = createResultSetContent(resultSetPanel)
-        modelMap[content] = model
+        resultModelMap[content] = model
         toolWindow.contentManager.addContent(content)
         toolWindow.contentManager.setSelectedContent(content)
         //toolWindow.contentManager.requestFocus(content, true)
@@ -127,7 +143,7 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
 
     private fun replaceContent(currentModel: ResultSetTableModel, newModel: ResultSetTableModel, currentContent: Content) {
         currentModel.close()
-        modelMap.remove(currentContent)
+        resultModelMap.remove(currentContent)
         toolWindow.contentManager.removeContent(currentContent, true)
         addContent(newModel)
     }
@@ -297,8 +313,9 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
 
     class ExportResults(val model: ResultSetTableModel) : DumbAwareAction("Export", "Export results to csv", AllIcons.Actions.Export) {
         override fun actionPerformed(e : AnActionEvent) {
-            val fileName = Messages.showInputDialog("message", "title", Messages.getQuestionIcon(), e.project?.basePath, null)
-            if ( fileName == null ) return
+            val timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
+            val proposedFileName = "${e.project?.basePath}/$timestamp.csv"
+            val fileName = Messages.showInputDialog("Choose Export Filename", "Export File", Messages.getQuestionIcon(), proposedFileName, null) ?: return
             model.updateStatus("Exporting")
             val writer = OutputStreamWriter(File(fileName).outputStream())
             try {
@@ -313,7 +330,7 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
                 writer.close()
             }
             model.updateStatus("Exported ${model.rowCount} rows")
-            //TODO put the catalogName in a buffer
+            //TODO open the file in a buffer?
         }
     }
 
