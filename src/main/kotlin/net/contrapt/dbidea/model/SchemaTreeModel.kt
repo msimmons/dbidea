@@ -40,6 +40,11 @@ class SchemaTreeModel(val connectionData: ConnectionData, val dataSource: DataSo
         addChildren(myRoot)
     }
 
+    fun refreshChildren(node: DBTreeNode) {
+        removeChildren(node)
+        addChildren(node)
+    }
+
     fun removeChildren(node: DBTreeNode) {
         if ( node.childCount == 0 ) return
         ApplicationManager.getApplication().executeOnPooledThread({
@@ -110,7 +115,7 @@ class SchemaTreeModel(val connectionData: ConnectionData, val dataSource: DataSo
             val node = event?.path?.lastPathComponent
             when ( node ) {
                 null -> return
-                is DBTreeNode -> addChildren(node)
+                is DBTreeNode -> refreshChildren(node)
                 else -> return
             }
         }
