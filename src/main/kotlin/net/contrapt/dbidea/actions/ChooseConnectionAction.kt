@@ -11,27 +11,28 @@ import com.intellij.openapi.project.Project
 import com.intellij.openapi.ui.ComboBox
 import net.contrapt.dbidea.controller.ApplicationController
 import net.contrapt.dbidea.controller.ToolWindowController
-import javax.swing.ComboBoxModel
+import javax.swing.DefaultComboBoxModel
 import javax.swing.JComponent
-import javax.swing.event.ListDataListener
 
 /**
- *
- * Choose the database connection to use and associate it with a File/Buffer ?
- * Custom component allows placing a choice combobox on a toolbar
+ * Choose the database connection to use and set it on the [ToolWindowController]
  */
 class ChooseConnectionAction : AnAction(), CustomComponentAction {
+
+    val applicationComponent = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
 
     override fun createCustomComponent(p0: Presentation?): JComponent {
         val comboBox = ComboBox<String>()
         comboBox.toolTipText = "Choose DB Connection"
-        comboBox.model = ChooseConnectionModel(comboBox)
+        val connectionNames = arrayOf("") + applicationComponent.applicationData.connections.map { it.name }.toTypedArray()
+        comboBox.model = ChooseConnectionModel(comboBox, connectionNames)
         comboBox.setMinLength(12)
         return comboBox
     }
 
     /**
-     * When action is performed, popup connection chooser
+     * When action is performed, popup connection chooser -- i don't think this
+     * ever happens
      */
     override fun actionPerformed(e: AnActionEvent) {
         println("Action Performed: $e")
@@ -42,45 +43,25 @@ class ChooseConnectionAction : AnAction(), CustomComponentAction {
         }
     }
 
-    class ChooseConnectionModel(val comboBox : ComboBox<String>) : ComboBoxModel<String> {
+    class ChooseConnectionModel(val comboBox: ComboBox<String>, connectionNames : Array<String>) : DefaultComboBoxModel<String>(connectionNames) {
         val applicationComponent = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
-        var selectedItem: String? = null
+
+        init {
+            selectedItem = ""
+        }
 
         override fun setSelectedItem(anItem: Any?) {
-            if ( anItem == null ) {
-                println("No item selected")
-                return
-            }
-            selectedItem = anItem as String
+            super.setSelectedItem(anItem)
             val project : Project? = when (DataManager.getInstance().getDataContext(comboBox).getData(DataKeys.PROJECT.name)) {
                 null -> null
                 else -> DataManager.getInstance().getDataContext(comboBox).getData(DataKeys.PROJECT.name) as Project
             }
             if ( project == null ) {
-                println("Didn't find the project")
                 return
             }
+            project.getComponent(ToolWindowController::class.java).connectionListModel = this
             project.getComponent(ToolWindowController::class.java).connectionName = selectedItem as String
         }
-
-        override fun getSelectedItem(): Any? {
-            return selectedItem
-        }
-
-        override fun getSize(): Int {
-            return applicationComponent.applicationData.connections.size
-        }
-
-        override fun addListDataListener(l: ListDataListener?) {
-        }
-
-        override fun getElementAt(index: Int): String {
-            if (index >= size) return ""
-            else return applicationComponent.applicationData.connections[index].name
-        }
-
-        override fun removeListDataListener(l: ListDataListener?) {
-
-        }
     }
+
 }

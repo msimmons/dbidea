@@ -29,6 +29,7 @@ import java.io.File
 import java.io.OutputStreamWriter
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import javax.swing.ComboBoxModel
 
 /**
  * Control operation of the main tool window
@@ -39,6 +40,8 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
 
     lateinit var toolWindow: ToolWindow
     lateinit var applicationController : ApplicationController
+    lateinit var connectionListModel : ComboBoxModel<String>
+
     var connectionName : String = ""
        set(value) {
            field = value
@@ -81,7 +84,6 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
 
     fun describeSchema() {
         if ( connectionName.isNullOrEmpty() ) {
-            Notifications.Bus.notify(Notification(DBIdea.APP_ID, "No Connection", "You have not chosen a connection", NotificationType.WARNING))
             return
         }
         val schemaTreeModel = schemaModelMap[connectionName]
@@ -155,11 +157,17 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
         val toolbar = createSchemaToolbar(schemaPanel)
         //toolbar.getComponent().addFocusListener(createFocusListener());
         panel.setToolbar(toolbar.component)
-        val content = toolWindow.contentManager.factory.createContent(panel, "Schema: $connectionName", false)
+        val content = toolWindow.contentManager.factory.createContent(panel, connectionName, false)
         content.preferredFocusableComponent = schemaPanel
-        content.isCloseable = false
-        //content.setDisposer { }
+        content.isCloseable = true
+        content.setDisposer { disposeSchemaContent(schemaPanel.treeModel.connectionData) }
         return content
+    }
+
+    fun disposeSchemaContent(connectionData : ConnectionData) {
+        schemaModelMap.remove(connectionData.name)
+        applicationController.removePool(connectionData.name)
+        if ( connectionListModel.selectedItem == connectionData.name ) connectionListModel.selectedItem = ""
     }
 
     fun createResultSetContent(resultSetPanel: ResultSetPanel): Content {
@@ -218,7 +226,6 @@ class ToolWindowController(project: Project) : AbstractProjectComponent(project)
             }
             catch(e : Exception) {
                 model.updateStatus("Execution Failed: $e")
-                //throw(e)
                 Notifications.Bus.notify(Notification(DBIdea.APP_ID, e.message ?: "Unkown Exception", e.cause?.message ?: "NA", NotificationType.ERROR))
             }
             model.updateStatus()

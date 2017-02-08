@@ -31,7 +31,7 @@ sealed class DBTreeNode(val tableModel: SchemaTableModel) : DefaultMutableTreeNo
 
         override fun getDetails(connection: Connection) {}
 
-        override fun toString() = data.name
+        override fun toString() = data.url
     }
 
     /**

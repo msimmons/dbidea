@@ -40,42 +40,40 @@ class SchemaTreeModel(val connectionData: ConnectionData, val dataSource: DataSo
         addChildren(myRoot)
     }
 
-    fun refreshChildren(node: DBTreeNode) {
-        removeChildren(node)
-        addChildren(node)
+    private fun refreshChildren(node: DBTreeNode) {
+        ApplicationManager.getApplication().executeOnPooledThread {
+            removeChildren(node)
+            addChildren(node)
+        }
     }
 
-    fun removeChildren(node: DBTreeNode) {
+    private fun removeChildren(node: DBTreeNode) {
+        println("removeChildren child count is ${node.childCount} for ${node}")
         if ( node.childCount == 0 ) return
-        ApplicationManager.getApplication().executeOnPooledThread({
-            val connection = dataSource.connection
-            val children = node.children().toList().toTypedArray()
-            val indices = (0..node.childCount-1).toList().toIntArray()
-            node.removeAllChildren()
-            nodesWereRemoved(node, indices, children)
-        })
+        val children = node.children().toList().toTypedArray()
+        val indices = (0..node.childCount-1).toList().toIntArray()
+        node.removeAllChildren()
+        nodesWereRemoved(node, indices, children)
     }
 
-    fun addChildren(node : DBTreeNode) {
-        ApplicationManager.getApplication().executeOnPooledThread({
-            val nodeClass = node.javaClass.simpleName
-            val connection = dataSource.connection
-            try {
-                node.addChildren(connection)
-            }
-            catch(e:Exception) {
-                Notifications.Bus.notify(Notification(DBIdea.APP_ID, e.message ?: "Unknown Exception", "Error adding $nodeClass children", NotificationType.WARNING))
-                return@executeOnPooledThread
-            }
-            finally {
-                connection.commit()
-                connection.close()
-            }
-            nodesWereInserted(node)
-        })
+    private fun addChildren(node : DBTreeNode) {
+        val nodeClass = node.javaClass.simpleName
+        val connection = dataSource.connection
+        try {
+            node.addChildren(connection)
+        }
+        catch(e:Exception) {
+            Notifications.Bus.notify(Notification(DBIdea.APP_ID, e.message ?: "Unknown Exception", "Error adding $nodeClass children", NotificationType.WARNING))
+            return
+        }
+        finally {
+            connection.commit()
+            connection.close()
+        }
+        nodesWereInserted(node)
     }
 
-    fun getDetails(node : DBTreeNode) {
+    private fun getDetails(node : DBTreeNode) {
         ApplicationManager.getApplication().executeOnPooledThread({
             val nodeClass = node.javaClass.simpleName
             val connection = dataSource.connection
@@ -93,7 +91,7 @@ class SchemaTreeModel(val connectionData: ConnectionData, val dataSource: DataSo
         })
     }
 
-    fun nodesWereInserted(node : TreeNode) {
+    private fun nodesWereInserted(node : TreeNode) {
         invoker.invokeLater {
             nodesWereInserted(node, (0..node.childCount-1).toList().toIntArray())
         }
