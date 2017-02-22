@@ -128,7 +128,7 @@ class ConnectionComponent : MasterDetailsComponent() {
     private fun reloadTree() {
         myRoot.removeAllChildren()
         logger.warn("Reloading tree with ${applicationController.applicationData.connections}")
-        applicationController.applicationData.connections.forEach {
+        applicationController.applicationData.connections.sortedBy { it.name }.forEach {
             val copy = it.deepCopy()
             addNode(MyNode(ConnectionConfigurable(copy, TREE_UPDATER)), myRoot)
         }

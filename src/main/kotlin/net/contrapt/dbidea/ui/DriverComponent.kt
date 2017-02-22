@@ -125,7 +125,7 @@ class DriverComponent : MasterDetailsComponent() {
 
     private fun reloadTree() {
         myRoot.removeAllChildren()
-        applicationController.applicationData.drivers.forEach {
+        applicationController.applicationData.drivers.sortedBy { it.name }.forEach {
             val copy = it.copy(it.name)
             addNode(MyNode(DriverConfigurable(copy, TREE_UPDATER)), myRoot)
         }
