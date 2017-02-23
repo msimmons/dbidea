@@ -1,4 +1,4 @@
-# dbidea
-db plugin for intellij written in kotlin
+# DBIdea
+Database Query plugin for IDEA written in kotlin
 
-Does a lot of really great stuff
+Currently only installs from local build 
