@@ -20,6 +20,7 @@ import javax.swing.JComponent
 class ChooseConnectionAction : AnAction(), CustomComponentAction {
 
     val applicationComponent = ApplicationManager.getApplication().getComponent(ApplicationController::class.java)
+    var project : Project? = null
 
     override fun createCustomComponent(p0: Presentation?): JComponent {
         val comboBox = ComboBox<String>()
@@ -28,6 +29,11 @@ class ChooseConnectionAction : AnAction(), CustomComponentAction {
         comboBox.model = ChooseConnectionModel(comboBox, connectionNames)
         comboBox.setMinLength(12)
         return comboBox
+    }
+
+    override fun update(e: AnActionEvent?) {
+        project = e?.project
+        super.update(e)
     }
 
     /**

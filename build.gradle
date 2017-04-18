@@ -20,7 +20,7 @@ apply plugin: 'kotlin'
 intellij {
     pluginName 'DBIdea'
     downloadSources false
-    version 'IC-163.7743.44'
+    version 'IC-171.3780.107'
 }
 
 group 'net.contrapt'
