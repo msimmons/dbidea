@@ -10,7 +10,7 @@ buildscript {
 }
 
 plugins {
-    id "org.jetbrains.intellij" version "0.1.10"
+    id "org.jetbrains.intellij" version "0.2.14"
 }
 
 apply plugin: 'idea'
@@ -20,7 +20,7 @@ apply plugin: 'kotlin'
 intellij {
     pluginName 'DBIdea'
     downloadSources false
-    version 'IC-171.3780.107'
+    version 'IC-172.3317.76'
 }
 
 group 'net.contrapt'
@@ -43,5 +43,5 @@ dependencies {
 }
 
 task wrapper(type: Wrapper) {
-    gradleVersion='3.2.1'
+    gradleVersion='4.0.1'
 }
